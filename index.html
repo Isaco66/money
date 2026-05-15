@@ -776,7 +776,9 @@ function getPrevMonthTarjetas(key) {
     const tarjetas = getEffectiveTarjetas(k);
     if (tarjetas && tarjetas.length > 0) {
       return tarjetas.map(t => {
-        const saldoArrastrado = Math.max(0, (t.saldo || 0) - (t.cargo || 0));
+        // t.saldo from getEffectiveTarjetas already = saldo neto (después del pago)
+        // No restar cargo de nuevo — ya fue descontado dentro de getEffectiveTarjetas
+        const saldoArrastrado = Math.max(0, t.saldo || 0);
         return {
           ...t,
           saldo: saldoArrastrado,
@@ -835,12 +837,15 @@ function getEffectiveTarjetas(key, depth) {
     return [...carried, ...brandNew];
   }
 
-  // First month ever — stored saldo is authoritative
-  return stored.map(t => ({
-    ...t,
-    saldo: t.saldoOverride !== undefined ? t.saldoOverride : (t.saldo || 0),
-    saldoBase: t.saldoOverride !== undefined ? t.saldoOverride : (t.saldo || 0)
-  }));
+  // First month ever — stored saldo is authoritative, but must discount cargo (payment made)
+  return stored.map(t => {
+    const base = t.saldoOverride !== undefined ? t.saldoOverride : (t.saldo || 0);
+    const itemsTotal = (t.cargoItems || []).reduce((s, ci) => s + (ci.amount || 0), 0);
+    const cargoThisMonth = t.cargo || 0;
+    const effectiveSaldo = base + itemsTotal;
+    const saldoNet = Math.max(0, effectiveSaldo - cargoThisMonth);
+    return { ...t, saldoBase: base, saldo: saldoNet, cargo: cargoThisMonth };
+  });
 }
 
 function defaultExpenses() {
