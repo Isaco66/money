@@ -19,7 +19,7 @@
   --safe-top:env(safe-area-inset-top,0px);
 }
 html,body{height:100%;overscroll-behavior:none;overflow-x:hidden;-webkit-overflow-scrolling:touch;}
-body{background:var(--bg);color:var(--text);min-height:100vh;padding-top:18px;}
+body{background:var(--bg);color:var(--text);min-height:100vh;}
 input,select,textarea{font-size:16px!important;}
 
 /* NAV */
@@ -217,70 +217,6 @@ select.inp{cursor:pointer;}
 .section-pill{display:inline-flex;align-items:center;gap:4px;background:rgba(0,0,0,0.05);border-radius:99px;padding:3px 10px;font-size:0.62rem;font-weight:700;color:var(--muted);}
 
 canvas{opacity:0.92;}
-
-/* FIXED DEUDA UI */
-.tarjeta-modern{
-  background:linear-gradient(180deg,#fff,#fcfcfc);
-  border:1px solid rgba(0,0,0,.06);
-  border-radius:24px;
-  padding:18px;
-  margin-bottom:16px;
-  box-shadow:0 4px 14px rgba(0,0,0,.04);
-}
-.tarjeta-modern .card-row-name{
-  font-size:1.1rem;
-  font-weight:800;
-}
-.tarjeta-modern .card-fields{
-  margin-top:10px;
-}
-.tarjeta-modern .card-field{
-  background:#f7f7f8;
-  padding:14px;
-  border-radius:18px;
-}
-.tarjeta-modern .card-field label{
-  margin-bottom:8px;
-}
-.tarjeta-modern .card-field.field-saldo input,
-.tarjeta-modern .card-field.field-saldo .card-field-prefix{
-  color:var(--red);
-}
-.tarjeta-modern .card-field.field-cargo input,
-.tarjeta-modern .card-field.field-cargo .card-field-prefix{
-  color:var(--green);
-}
-.tarjeta-restante{
-  margin-top:14px;
-  border-radius:18px;
-  padding:14px;
-  background:rgba(52,199,89,.08);
-  border:1px solid rgba(52,199,89,.18);
-}
-.tarjeta-restante.red{
-  background:rgba(255,59,48,.08);
-  border:1px solid rgba(255,59,48,.18);
-}
-.tarjeta-restante-title{
-  font-size:.68rem;
-  font-weight:800;
-  text-transform:uppercase;
-  letter-spacing:.08em;
-  margin-bottom:5px;
-}
-.tarjeta-restante.green .tarjeta-restante-title,
-.tarjeta-restante.green .tarjeta-restante-val{
-  color:var(--green);
-}
-.tarjeta-restante.red .tarjeta-restante-title,
-.tarjeta-restante.red .tarjeta-restante-val{
-  color:var(--red);
-}
-.tarjeta-restante-val{
-  font-size:1.5rem;
-  font-weight:900;
-}
-
 </style>
 </head>
 <body>
@@ -299,7 +235,7 @@ canvas{opacity:0.92;}
   <button class="nav-btn" onclick="showPage('ahorro')" id="nav-ahorro">
     <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 6c0 3.87-3.13 7-7 7s-7-3.13-7-7"/><path d="M5 6V4"/><path d="M19 6V4"/><path d="M12 13v8"/><path d="M9 18h6"/></svg></span>Ahorro
   </button>
-  
+
 </nav>
 
 <!-- ═══════════════════ HOME ═══════════════════ -->
@@ -406,6 +342,12 @@ canvas{opacity:0.92;}
     <p>Tarjetas · desglose · corte</p>
   </div>
 
+  <div class="month-bar fadein">
+    <button class="month-nav" onclick="changeMonth(-1)">‹</button>
+    <span id="deuda-month-label">—</span>
+    <button class="month-nav" onclick="changeMonth(1)">›</button>
+  </div>
+
   <!-- Corte alerts banner -->
   <div id="corte-alerts-banner" style="display:none;margin-bottom:12px"></div>
 
@@ -431,6 +373,12 @@ canvas{opacity:0.92;}
   <div class="page-header fadein">
     <h2>Mi Ahorro 🐷</h2>
     <p>Depósitos · saldo · historial</p>
+  </div>
+
+  <div class="month-bar fadein">
+    <button class="month-nav" onclick="changeMonth(-1)">‹</button>
+    <span id="ahorro-month-label">—</span>
+    <button class="month-nav" onclick="changeMonth(1)">›</button>
   </div>
 
   <!-- Saldo total acumulado (hero card) -->
@@ -562,6 +510,13 @@ canvas{opacity:0.92;}
     <button class="btn" style="width:100%;background:var(--green)" onclick="guardarAhorroModal()">Guardar ahorro</button>
   </div>
 </div>
+
+<!-- Hidden legacy elements kept for renderAhorro/renderHistorial compatibility -->
+<input type="file" id="import-file-input" accept=".json" style="display:none" onchange="importarDatos(event)"/>
+<select id="historial-select" style="display:none" onchange="renderHistorialDetail()"></select>
+<div id="historial-detail" style="display:none"></div>
+<select id="ahorro-desglose-select" style="display:none" onchange="renderAhorroDesgloseDetail()"></select>
+<div id="ahorro-desglose-detail" style="display:none"></div>
 
 <!-- MODAL: Gráfica distribución -->
 <div class="modal-overlay" id="modal-donut">
@@ -945,8 +900,9 @@ function renderAll() {
   const md = getMonthData(key);
   const label = `${MONTHS_ES[currentMonth]} ${currentYear}`;
   document.querySelectorAll('[id$="-month-label"]').forEach(el => el.textContent = label);
-  document.querySelectorAll('.month-nav').forEach((btn,i) => {
-    if (i===1) btn.style.opacity = isCurrentMonth() ? '0.25' : '1';
+  document.querySelectorAll('.month-bar').forEach(bar => {
+    const btns = bar.querySelectorAll('.month-nav');
+    if (btns[1]) btns[1].style.opacity = isCurrentMonth() ? '0.25' : '1';
   });
   const now = new Date();
   document.getElementById('home-date').textContent =
@@ -1386,12 +1342,14 @@ function renderGastos(md, key) {
               <div style="display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:10px;margin-bottom:3px;background:rgba(0,0,0,0.025)">
                 <span style="font-size:0.95rem;width:22px;text-align:center;flex-shrink:0">${it.icon||'💰'}</span>
                 <span style="flex:1;font-size:0.82rem;font-weight:500;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${it.name}</span>
-                ${it.isTarjeta ? `<span style="font-size:0.55rem;background:rgba(0,122,255,0.1);color:var(--blue);padding:2px 6px;border-radius:99px;flex-shrink:0;font-weight:700">tarjeta</span>` : ''}
-                <span style="font-size:0.85rem;font-weight:700;color:${it.isTarjeta?'var(--blue)':color};flex-shrink:0;min-width:52px;text-align:right">${fmt(it.amount)}</span>
                 ${!it.isTarjeta ? `
+                  <button onclick="moveExpense('${it.id}',-1)" style="background:none;border:none;color:var(--muted);cursor:pointer;padding:3px;font-size:0.8rem;flex-shrink:0;line-height:1;opacity:0.5">↑</button>
+                  <button onclick="moveExpense('${it.id}',1)" style="background:none;border:none;color:var(--muted);cursor:pointer;padding:3px;font-size:0.8rem;flex-shrink:0;line-height:1;opacity:0.5">↓</button>
                   <button onclick="openEditGasto('${it.id}','${key}')" style="background:none;border:none;color:var(--muted);cursor:pointer;padding:3px;font-size:0.85rem;flex-shrink:0;line-height:1">✏️</button>
                   <button onclick="deleteExpense('${it.id}','${key}')" style="background:none;border:none;color:var(--red);cursor:pointer;padding:3px;font-size:0.75rem;opacity:0.5;flex-shrink:0;line-height:1">✕</button>
                 ` : ''}
+                ${it.isTarjeta ? `<span style="font-size:0.55rem;background:rgba(0,122,255,0.1);color:var(--blue);padding:2px 6px;border-radius:99px;flex-shrink:0;font-weight:700">tarjeta</span>` : ''}
+                <span style="font-size:0.85rem;font-weight:700;color:${it.isTarjeta?'var(--blue)':color};flex-shrink:0;min-width:52px;text-align:right">${fmt(it.amount)}</span>
               </div>`).join('')}
           </div>`
         : '';
@@ -1529,11 +1487,11 @@ function expenseRow(e, key) {
       <div class="expense-name">${e.name}</div>
       ${fuenteLabel ? `<div class="expense-sub">${fuenteLabel}</div>` : ''}
     </div>
-    <div class="expense-amount">${fmt(e.amount)}</div>
     <button class="reorder-btn" onclick="moveExpense('${e.id}',-1)">↑</button>
     <button class="reorder-btn" onclick="moveExpense('${e.id}',1)">↓</button>
     <button class="expense-edit" onclick="openEditGasto('${e.id}','${key}')">✏️</button>
     <button class="expense-del" onclick="deleteExpense('${e.id}','${key}')">✕</button>
+    <div class="expense-amount">${fmt(e.amount)}</div>
   </div>`;
 }
 
@@ -1640,116 +1598,168 @@ function moveExpense(id, dir) {
 // ════════════════════════════════════════════
 //  DEUDA PAGE
 // ════════════════════════════════════════════
-
 function renderDeuda(md) {
-  const wrap = document.getElementById('tarjetas-table');
-  if (!wrap) return;
-
   const tarjetas = md.tarjetas || [];
-  const deudaTotal = tarjetas.reduce((s,t)=>s+Math.max(0,(t.saldo||0)-(t.cargo||0)),0);
+  const totalDeuda = tarjetas.reduce((s,t)=>s+(t.saldo||0),0);
+  const totalCargo = tarjetas.reduce((s,t)=>s+(t.cargo||0),0);
 
-  document.getElementById('deuda-total-kpi').textContent = fmt(deudaTotal);
-  document.getElementById('deuda-meses-kpi').textContent =
-    tarjetas.length ? `${tarjetas.length} tarjetas activas` : 'Sin tarjetas';
+  document.getElementById('deuda-total-kpi').textContent = fmt(totalDeuda);
+  document.getElementById('deuda-meses-kpi').textContent = `Abono total este mes: ${fmt(totalCargo)}`;
 
-  wrap.innerHTML = tarjetas.map((t,i)=>{
-    const restante = Math.max(0,(t.saldo||0)-(t.cargo||0));
-    const restanteClass = restante > 0 ? 'red' : 'green';
+  // Corte alerts banner
+  const banner = document.getElementById('corte-alerts-banner');
+  const alertCards = tarjetas.filter(t => t.fechaCorte && daysUntilCorte(parseInt(t.fechaCorte)) !== null && daysUntilCorte(parseInt(t.fechaCorte)) <= 7);
+  if (alertCards.length > 0) {
+    banner.style.display = 'block';
+    banner.innerHTML = alertCards.map(t => {
+      const diff = daysUntilCorte(parseInt(t.fechaCorte));
+      const isUrgent = diff <= 3;
+      const emoji = diff === 0 ? '⚠️' : isUrgent ? '🔴' : '🟡';
+      const msg = diff === 0 ? `¡El corte de <b>${t.name}</b> es hoy!`
+                : diff === 1 ? `El corte de <b>${t.name}</b> es mañana`
+                : `El corte de <b>${t.name}</b> es en ${diff} días`;
+      return `<div style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:14px;margin-bottom:8px;background:${isUrgent?'rgba(255,59,48,0.08)':'rgba(255,159,10,0.08)'};border:1px solid ${isUrgent?'rgba(255,59,48,0.2)':'rgba(255,159,10,0.2)'}">
+        <span style="font-size:1.2rem">${emoji}</span>
+        <div style="flex:1;font-size:0.82rem">${msg}</div>
+      </div>`;
+    }).join('');
+  } else {
+    banner.style.display = 'none';
+    banner.innerHTML = '';
+  }
 
-    return `
-    <div class="tarjeta-modern">
-      <div class="card-row-header">
-        <input class="card-row-name"
-          value="${t.name||''}"
-          onchange="updateTarjeta('${t.id}','name',this.value)"/>
+  const tbl = document.getElementById('tarjetas-table');
+  if (tarjetas.length === 0) {
+    tbl.innerHTML = `<p class="small-muted" style="text-align:center;padding:16px">Toca "+ Agregar" para añadir una tarjeta</p>`;
+  } else {
+    tbl.innerHTML = tarjetas.map(t => {
+      const items = t.cargoItems || [];
+      const itemsTotal = items.reduce((s,ci)=>s+(ci.amount||0),0);
+      const hasItems = items.length > 0;
+      const saldoActual = t.saldo || 0;
+      const abonoMes = t.cargo || 0;
+      const saldoRestante = Math.max(0, saldoActual - abonoMes);
+      const corteBadge = t.fechaCorte ? getCorteBadge(parseInt(t.fechaCorte)) : '';
+      const pctPagado = saldoActual > 0 ? Math.min(100, (abonoMes / saldoActual) * 100) : 0;
 
-        <button class="del-card-btn"
-          onclick="deleteTarjeta('${t.id}')">Eliminar</button>
-      </div>
+      return `
+      <div class="card-row" id="card-${t.id}">
+        <!-- Header: nombre + delete -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+          <input class="card-row-name" value="${t.name}" placeholder="Nombre tarjeta"
+            onchange="updateTarjeta('${t.id}','name',this.value)"
+            style="font-size:1.05rem;font-weight:800;letter-spacing:-0.01em"/>
+          <button class="del-card-btn" onclick="removeTarjeta('${t.id}')">✕</button>
+        </div>
 
-      <div class="card-fields">
-        <div class="card-field field-saldo">
-          <label>Saldo actual</label>
-          <div class="card-field-input-wrap">
-            <span class="card-field-prefix">$</span>
-            <input type="text"
-              value="${fmtNum(t.saldo||0)}"
-              onfocus="focusMoneyInput(this)"
-              onblur="blurMoneyInput(this,'${t.id}','saldo')"/>
+        <!-- Tres chips de estado -->
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px">
+          <!-- Saldo total -->
+          <div style="background:rgba(255,59,48,0.06);border:1px solid rgba(255,59,48,0.12);border-radius:14px;padding:10px 8px;text-align:center">
+            <div style="font-size:0.52rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--red);margin-bottom:5px">Saldo</div>
+            <div style="display:flex;align-items:baseline;justify-content:center;gap:1px">
+              <span style="font-size:0.72rem;font-weight:700;color:var(--red)">$</span>
+              <input type="text" inputmode="decimal"
+                style="background:transparent;border:none;outline:none;font-size:1rem;font-weight:800;color:var(--red);text-align:center;width:100%;min-width:0"
+                value="${fmtNum(t.saldo)}" placeholder="0"
+                onfocus="focusTarjetaInput(this)"
+                onblur="blurTarjetaInput(this,'${t.id}','saldo');recalcSaldoRestante('${t.id}')"
+                data-raw="${t.saldoBase||t.saldo||0}"/>
+            </div>
+            ${itemsTotal > 0 ? `<div style="font-size:0.5rem;color:var(--muted);margin-top:2px">${fmt(t.saldoBase||0)}+cargos</div>` : ''}
+          </div>
+
+          <!-- Pago del mes -->
+          <div style="background:rgba(52,199,89,0.06);border:1px solid rgba(52,199,89,0.15);border-radius:14px;padding:10px 8px;text-align:center">
+            <div style="font-size:0.52rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--green);margin-bottom:5px">Pagué</div>
+            <div style="display:flex;align-items:baseline;justify-content:center;gap:1px">
+              <span style="font-size:0.72rem;font-weight:700;color:var(--green)">$</span>
+              <input type="text" inputmode="decimal"
+                style="background:transparent;border:none;outline:none;font-size:1rem;font-weight:800;color:var(--green);text-align:center;width:100%;min-width:0"
+                value="${fmtNum(t.cargo)}" placeholder="0"
+                onfocus="focusTarjetaInput(this)"
+                onblur="blurTarjetaInput(this,'${t.id}','cargo');recalcSaldoRestante('${t.id}')"
+                data-raw="${t.cargo||0}"
+                oninput="liveRecalcSaldoRestante('${t.id}',this.value)"/>
+            </div>
+          </div>
+
+          <!-- Saldo restante (auto-calc) -->
+          <div style="background:${saldoRestante===0&&saldoActual>0?'rgba(52,199,89,0.08)':saldoRestante>0?'rgba(255,159,10,0.06)':'rgba(0,0,0,0.04)'};border:1px solid ${saldoRestante===0&&saldoActual>0?'rgba(52,199,89,0.18)':saldoRestante>0?'rgba(255,159,10,0.18)':'rgba(0,0,0,0.06)'};border-radius:14px;padding:10px 8px;text-align:center">
+            <div style="font-size:0.52rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:${saldoRestante===0&&saldoActual>0?'var(--green)':'var(--yellow)'};margin-bottom:5px">Resta</div>
+            <div id="resta-${t.id}" style="font-size:1rem;font-weight:800;color:${saldoRestante===0&&saldoActual>0?'var(--green)':saldoRestante>0?'var(--yellow)':'var(--muted)'}">${saldoActual===0?'—':fmt(saldoRestante)}</div>
           </div>
         </div>
 
-        <div class="card-field field-cargo">
-          <label>Pago del mes</label>
-          <div class="card-field-input-wrap">
-            <span class="card-field-prefix">$</span>
-            <input type="text"
-              value="${fmtNum(t.cargo||0)}"
-              onfocus="focusMoneyInput(this)"
-              onblur="blurMoneyInput(this,'${t.id}','cargo')"/>
+        <!-- Barra de progreso de pago -->
+        ${saldoActual > 0 ? `
+        <div style="margin-bottom:12px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+            <span style="font-size:0.6rem;color:var(--muted);font-weight:600">Avance del pago</span>
+            <span style="font-size:0.6rem;font-weight:700;color:${pctPagado>=100?'var(--green)':'var(--muted)'}">${Math.round(pctPagado)}%</span>
           </div>
+          <div class="prog-track" style="height:5px">
+            <div class="prog-fill" style="width:${pctPagado}%;background:${pctPagado>=100?'var(--green)':pctPagado>=50?'var(--blue)':'var(--yellow)'}"></div>
+          </div>
+        </div>` : ''}
+
+        <!-- Fecha de corte + desglose en fila -->
+        <div style="display:flex;align-items:center;justify-content:space-between;padding-top:10px;border-top:1px solid rgba(0,0,0,0.05)">
+          <div style="display:flex;align-items:center;gap:6px">
+            <button class="corte-day-btn ${t.fechaCorte ? 'set' : ''}" onclick="openDayPicker('${t.id}')"
+              style="font-size:0.78rem;padding:5px 10px">
+              ${t.fechaCorte ? `✂️ Día ${t.fechaCorte}` : '✂️ Corte'}
+            </button>
+            ${corteBadge}
+          </div>
+          <button style="background:rgba(0,122,255,0.07);border:1px solid rgba(0,122,255,0.15);color:var(--blue);border-radius:10px;padding:5px 10px;font-size:0.72rem;font-weight:700;cursor:pointer" onclick="openCargoItems('${t.id}')">
+            📋 ${hasItems ? `Gastos (${items.length})` : 'Desglose'}
+          </button>
         </div>
-      </div>
 
-      <div class="tarjeta-restante ${restanteClass}">
-        <div class="tarjeta-restante-title">Saldo restante después del pago</div>
-        <div class="tarjeta-restante-val">${fmt(restante)}</div>
-      </div>
+        <!-- Mini preview de items si hay -->
+        ${hasItems ? `
+        <div style="margin-top:10px;padding:8px 10px;background:rgba(0,0,0,0.02);border-radius:10px">
+          ${items.slice(0,2).map(ci=>`
+            <div style="display:flex;justify-content:space-between;align-items:center;font-size:0.75rem;padding:2px 0">
+              <span style="color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60%">${ci.name||'Sin nombre'}</span>
+              <span style="font-weight:600;color:var(--blue);flex-shrink:0">${fmt(ci.amount||0)}</span>
+            </div>`).join('')}
+          ${items.length > 2 ? `<div style="font-size:0.65rem;color:var(--muted);margin-top:3px">+${items.length-2} más · total ${fmt(itemsTotal)}</div>` : ''}
+        </div>` : ''}
+      </div>`;
+    }).join('');
+  }
 
-      <div class="corte-row">
-        <span class="corte-label">Fecha de corte</span>
-        <button class="corte-day-btn ${t.fechaCorte ? 'set' : ''}"
-          onclick="openDayPicker('${t.id}')">
-          ${t.fechaCorte || 'Elegir día'}
-        </button>
-      </div>
-    </div>`;
-  }).join('');
 }
 
-function focusMoneyInput(el){
-  el.dataset.prev = el.value;
-  el.value = el.value.replace(/,/g,'');
-}
-
-function blurMoneyInput(el,id,field){
-  const val = parseFloat(el.value.replace(/,/g,'')) || 0;
-  el.value = Number(val).toLocaleString('es-MX');
-  updateTarjeta(id,field,val);
-}
-
-function updateTarjeta(id,field,value){
+// Live recalc saldo restante while typing (no save)
+function liveRecalcSaldoRestante(tarjetaId, inputVal) {
   const md = getMonthData(currentKey());
-  const tarjeta = (md.tarjetas||[]).find(t=>t.id===id);
-  if(!tarjeta) return;
-
-  tarjeta[field] = field === 'name' ? value : (parseFloat(value)||0);
-
-  saveState();
-  renderDeuda(md);
-  showUpdatedBadge();
+  const t = md.tarjetas.find(x => x.id === tarjetaId);
+  if (!t) return;
+  const saldo = t.saldo || 0;
+  const pago = parseFloat(inputVal) || 0;
+  const resta = Math.max(0, saldo - pago);
+  const el = document.getElementById('resta-' + tarjetaId);
+  if (!el) return;
+  el.textContent = saldo === 0 ? '—' : fmt(resta);
+  el.style.color = resta === 0 && saldo > 0 ? 'var(--green)' : resta > 0 ? 'var(--yellow)' : 'var(--muted)';
 }
 
-function deleteTarjeta(id){
+// After save, full recalc
+function recalcSaldoRestante(tarjetaId) {
   const md = getMonthData(currentKey());
-  md.tarjetas = (md.tarjetas||[]).filter(t=>t.id!==id);
-  saveState();
-  renderDeuda(md);
-  showUpdatedBadge();
+  const t = md.tarjetas.find(x => x.id === tarjetaId);
+  if (!t) return;
+  const saldo = t.saldo || 0;
+  const pago = t.cargo || 0;
+  const resta = Math.max(0, saldo - pago);
+  const el = document.getElementById('resta-' + tarjetaId);
+  if (!el) return;
+  el.textContent = saldo === 0 ? '—' : fmt(resta);
+  el.style.color = resta === 0 && saldo > 0 ? 'var(--green)' : resta > 0 ? 'var(--yellow)' : 'var(--muted)';
 }
-
-function openDayPicker(id){
-  const md = getMonthData(currentKey());
-  const tarjeta = (md.tarjetas||[]).find(t=>t.id===id);
-  const day = prompt('Día de corte (1-31)', tarjeta.fechaCorte || '');
-
-  if(day === null) return;
-
-  tarjeta.fechaCorte = day;
-  saveState();
-  renderDeuda(md);
-}
-
 
 function formatCorte(dateStr) {
   if (!dateStr) return '';
@@ -2681,7 +2691,7 @@ document.addEventListener('touchend', e => {
 //  SWIPE HORIZONTAL ENTRE PESTAÑAS
 // ════════════════════════════════════════════
 (function() {
-  const PAGES = ['home', 'gastos', 'deuda', 'ahorro', 'historial'];
+  const PAGES = ['home', 'gastos', 'deuda', 'ahorro'];
   let touchStartX = 0, touchStartY = 0, touchStartTime = 0;
   let currentPageId = 'home';
 
