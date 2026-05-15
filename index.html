@@ -232,6 +232,9 @@ canvas{opacity:0.92;}
   <button class="nav-btn" onclick="showPage('deuda')" id="nav-deuda">
     <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M2.5 10h19"/></svg></span>Deuda
   </button>
+  <button class="nav-btn" onclick="showPage('ahorro')" id="nav-ahorro">
+    <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 6c0 3.87-3.13 7-7 7s-7-3.13-7-7"/><path d="M5 6V4"/><path d="M19 6V4"/><path d="M12 13v8"/><path d="M9 18h6"/></svg></span>Ahorro
+  </button>
   <button class="nav-btn" onclick="showPage('historial')" id="nav-historial">
     <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg></span>Historial
   </button>
@@ -304,35 +307,11 @@ canvas{opacity:0.92;}
   <div id="bars-home" style="display:none"></div>
   <div id="ahorro-tip" style="display:none"></div>
 
-  <!-- Cerrar mes -->
-  <div class="block fadein" id="bloque-cerrar-mes">
-    <div class="block-title">
-      <span class="title-with-icon"><span class="ui-svg-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M8 12l2.5 2.5L16 9"/></svg></span>Cerrar mes</span>
-      <span id="mes-cerrado-badge" style="display:none;font-size:0.65rem;background:rgba(52,199,89,0.15);color:var(--green);padding:3px 8px;border-radius:99px;font-weight:700">✓ CERRADO</span>
-    </div>
-    <p class="small-muted" style="margin-bottom:12px;line-height:1.5">¿Cuánto ahorraste en realidad este mes?</p>
-    <div style="display:flex;align-items:stretch;gap:10px">
-      <div style="flex:1;min-width:0;display:flex;align-items:center;background:rgba(52,199,89,0.07);border:1.5px solid rgba(52,199,89,0.25);border-radius:14px;padding:0 14px;gap:6px">
-        <span style="font-size:1rem;font-weight:700;color:var(--green);flex-shrink:0">$</span>
-        <input id="ahorro-real-input" type="text" inputmode="decimal"
-          style="flex:1;min-width:0;background:none;border:none;outline:none;font-size:1.05rem;font-weight:700;color:var(--green);padding:12px 0;"
-          placeholder="0"
-          onfocus="focusAhorroInput(this)"
-          onblur="blurAhorroInput(this)"/>
-      </div>
-      <button class="btn" onclick="cerrarMes()" style="background:var(--green);border-radius:14px;padding:12px 18px;font-size:0.9rem;flex-shrink:0">Guardar</button>
-    </div>
-    <div id="ahorro-real-display" style="display:none;margin-top:8px">
-      <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(52,199,89,0.07);border:1.5px solid rgba(52,199,89,0.2);border-radius:14px;padding:14px 16px">
-        <div>
-          <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--green);margin-bottom:3px">Ahorro registrado</div>
-          <span id="ahorro-real-val" style="font-weight:800;font-size:1.3rem;color:var(--green);letter-spacing:-0.02em"></span>
-        </div>
-        <span style="font-size:1.8rem">🐷</span>
-      </div>
-      <button class="btn-red" style="width:100%;margin-top:10px;font-size:0.75rem" onclick="editarAhorro()">Editar ahorro</button>
-    </div>
-  </div>
+  <!-- Elementos ocultos para compatibilidad con renderCerrarMes -->
+  <input id="ahorro-real-input" type="hidden" value=""/>
+  <div id="ahorro-real-display" style="display:none"></div>
+  <span id="mes-cerrado-badge" style="display:none"></span>
+  <span id="ahorro-real-val" style="display:none"></span>
 </div>
 
 <!-- ═══════════════════ GASTOS ═══════════════════ -->
@@ -385,45 +364,164 @@ canvas{opacity:0.92;}
   </div>
 </div>
 
+<!-- ═══════════════════ AHORRO ═══════════════════ -->
+<div class="page" id="page-ahorro">
+  <div class="page-header fadein">
+    <h2>Mi Ahorro 🐷</h2>
+    <p>Depósitos · saldo · historial</p>
+  </div>
+
+  <!-- Saldo total acumulado (hero card) -->
+  <div class="fadein" style="background:linear-gradient(135deg,rgba(52,199,89,0.15),rgba(52,199,89,0.06));border:1.5px solid rgba(52,199,89,0.25);border-radius:20px;padding:20px;margin-bottom:14px;text-align:center">
+    <div style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--green);margin-bottom:6px">💰 Saldo disponible</div>
+    <div id="ahorro-kpi-total" style="font-size:2.6rem;font-weight:800;letter-spacing:-0.04em;color:var(--green);line-height:1">$0</div>
+    <div id="ahorro-kpi-months" style="font-size:0.72rem;color:var(--muted);margin-top:8px">0 meses con ahorro</div>
+  </div>
+
+  <!-- Comparativa mes anterior / actual -->
+  <div class="kpi-row fadein" style="margin-bottom:14px">
+    <div class="kpi g">
+      <div class="kpi-label">Mes anterior</div>
+      <div class="kpi-val" id="ahorro-kpi-prev">—</div>
+      <div class="kpi-sub" id="ahorro-kpi-prev-label">—</div>
+    </div>
+    <div class="kpi g">
+      <div class="kpi-label">Este mes</div>
+      <div class="kpi-val" id="ahorro-kpi-cur">—</div>
+      <div class="kpi-sub" id="ahorro-kpi-cur-label">—</div>
+    </div>
+  </div>
+
+  <!-- Botones principales -->
+  <div class="fadein" style="display:flex;gap:10px;margin-bottom:14px">
+    <button class="btn" style="flex:1;padding:14px;font-size:0.92rem;border-radius:16px;background:var(--green)" onclick="openAddDeposito()">+ Depósito</button>
+    <button class="btn fadein" style="flex:1;padding:14px;font-size:0.92rem;border-radius:16px;background:none;border:1.5px solid rgba(255,59,48,0.35);color:var(--red);font-weight:700" onclick="openAddSalida()">↓ Salida</button>
+  </div>
+
+  <!-- Depósitos de este mes -->
+  <div class="block fadein">
+    <div class="block-title">
+      <span class="title-with-icon">
+        <span class="ui-svg-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 5v14"/><path d="M5 12l7-7 7 7"/></svg></span>
+        Depósitos este mes
+      </span>
+      <span id="ahorro-depositos-total-badge" style="font-size:0.7rem;background:rgba(52,199,89,0.12);color:var(--green);padding:3px 8px;border-radius:99px;font-weight:700"></span>
+    </div>
+    <div id="ahorro-depositos-list"></div>
+  </div>
+
+  <!-- Salidas del ahorro este mes -->
+  <div class="block fadein" id="ahorro-salidas-block" style="display:none">
+    <div class="block-title">
+      <span class="title-with-icon">
+        <span class="ui-svg-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 19V5"/><path d="M19 12l-7 7-7-7"/></svg></span>
+        Salidas del ahorro este mes
+      </span>
+      <span id="ahorro-salidas-total-badge" style="font-size:0.7rem;background:rgba(255,59,48,0.1);color:var(--red);padding:3px 8px;border-radius:99px;font-weight:700"></span>
+    </div>
+    <div id="ahorro-salidas-list"></div>
+  </div>
+
+</div>
+
+<!-- MODAL: Agregar Depósito al Ahorro -->
+<div class="modal-overlay" id="modal-add-deposito">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modal-add-deposito')">✕</button>
+    <h3 id="modal-deposito-title">🐷 Agregar depósito</h3>
+    <input type="hidden" id="deposito-edit-id"/>
+    <div style="margin-bottom:16px">
+      <label class="modal-label">Monto</label>
+      <div style="display:flex;align-items:center;background:rgba(52,199,89,0.07);border:1.5px solid rgba(52,199,89,0.25);border-radius:14px;padding:0 14px;gap:6px">
+        <span style="font-size:1rem;font-weight:700;color:var(--green)">$</span>
+        <input id="deposito-modal-monto" type="number" inputmode="decimal"
+          style="flex:1;background:none;border:none;outline:none;font-size:1.1rem;font-weight:700;color:var(--green);padding:13px 0;"
+          placeholder="0"/>
+      </div>
+    </div>
+    <div style="margin-bottom:16px">
+      <label class="modal-label">Concepto (opcional)</label>
+      <input class="inp" id="deposito-modal-nota" placeholder="ej. Quincena, bono, guardé extra…"/>
+    </div>
+    <button class="btn" style="width:100%;background:var(--green)" id="deposito-modal-btn" onclick="guardarDeposito()">Agregar depósito</button>
+  </div>
+</div>
+
+<!-- MODAL: Registrar Salida del Ahorro -->
+<div class="modal-overlay" id="modal-add-salida">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modal-add-salida')">✕</button>
+    <h3 id="modal-salida-title">💸 Salida del ahorro</h3>
+    <input type="hidden" id="salida-edit-id"/>
+    <div style="margin-bottom:16px">
+      <label class="modal-label">Nombre / concepto</label>
+      <input class="inp" id="salida-modal-nombre" placeholder="ej. Chetod, Perro, Viaje…"/>
+    </div>
+    <div style="margin-bottom:16px">
+      <label class="modal-label">Monto</label>
+      <div style="display:flex;align-items:center;background:rgba(255,59,48,0.06);border:1.5px solid rgba(255,59,48,0.25);border-radius:14px;padding:0 14px;gap:6px">
+        <span style="font-size:1rem;font-weight:700;color:var(--red)">$</span>
+        <input id="salida-modal-monto" type="number" inputmode="decimal"
+          style="flex:1;background:none;border:none;outline:none;font-size:1.1rem;font-weight:700;color:var(--red);padding:13px 0;"
+          placeholder="0"/>
+      </div>
+    </div>
+    <div style="margin-bottom:16px">
+      <label class="modal-label">Emoji (opcional)</label>
+      <input class="inp" id="salida-modal-icon" placeholder="💸"/>
+    </div>
+    <button class="btn" style="width:100%;background:var(--red)" id="salida-modal-btn" onclick="guardarSalida()">Registrar salida</button>
+  </div>
+</div>
+<div class="modal-overlay" id="modal-add-ahorro">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modal-add-ahorro')">✕</button>
+    <h3>🐷 Registrar ahorro</h3>
+    <p class="small-muted" style="margin-bottom:16px;line-height:1.5">¿Cuánto ahorraste este mes? Puedes registrar ahorro en cualquier mes cerrado o en el actual.</p>
+    <div style="margin-bottom:12px">
+      <label class="modal-label">Mes</label>
+      <select class="inp" id="ahorro-modal-mes" style="width:100%"></select>
+    </div>
+    <div style="margin-bottom:16px">
+      <label class="modal-label">Monto ahorrado</label>
+      <div style="display:flex;align-items:center;background:rgba(52,199,89,0.07);border:1.5px solid rgba(52,199,89,0.25);border-radius:14px;padding:0 14px;gap:6px">
+        <span style="font-size:1rem;font-weight:700;color:var(--green)">$</span>
+        <input id="ahorro-modal-monto" type="text" inputmode="decimal"
+          style="flex:1;background:none;border:none;outline:none;font-size:1.1rem;font-weight:700;color:var(--green);padding:13px 0;"
+          placeholder="0"
+          onfocus="this.type='number';this.value=this.dataset.raw||''"
+          onblur="this.type='text';this.dataset.raw=this.value;this.value=this.value?'$'+Number(this.value).toLocaleString('es-MX'):''"/>
+      </div>
+    </div>
+    <div style="margin-bottom:16px">
+      <label class="modal-label">Nota (opcional)</label>
+      <input class="inp" id="ahorro-modal-nota" placeholder="ej. Extra de quincena, bonificación…"/>
+    </div>
+    <button class="btn" style="width:100%;background:var(--green)" onclick="guardarAhorroModal()">Guardar ahorro</button>
+  </div>
+</div>
+
 <!-- ═══════════════════ HISTORIAL ═══════════════════ -->
 <div class="page" id="page-historial">
   <div class="page-header fadein">
     <h2>Historial 📅</h2>
-    <p>Meses · gráfica · datos</p>
+    <p>Meses · resumen · ahorro</p>
   </div>
 
   <div class="block fadein">
-    <div class="block-title"><span class="title-with-icon"><span class="ui-svg-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3" y="4" width="18" height="17" rx="2"/></svg></span>Meses guardados</span></div>
+    <div class="block-title"><span class="title-with-icon"><span class="ui-svg-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3" y="4" width="18" height="17" rx="2"/></svg></span>Selecciona un mes</span></div>
     <select class="inp" id="historial-select" onchange="renderHistorialDetail()" style="width:100%;margin-bottom:14px">
       <option value="">— Selecciona un mes —</option>
     </select>
     <div id="historial-detail" style="display:none"></div>
   </div>
 
-  <div class="block fadein">
-    <div class="block-title"><span class="title-with-icon"><span class="ui-svg-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 16l4-4 4 3 7-8"/></svg></span>Ahorro real por mes</span></div>
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
-      <div style="position:relative;flex:1">
-        <div style="font-size:0.55rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);margin-bottom:4px;padding-left:2px">Desde</div>
-        <div style="position:relative">
-          <select id="chart-from" onchange="applyChartFilter()" style="appearance:none;-webkit-appearance:none;width:100%;background:var(--s2);border:none;border-radius:12px;padding:10px 32px 10px 14px;color:var(--text);font-size:0.88rem;font-weight:600;outline:none;cursor:pointer"></select>
-          <span style="position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:0.6rem;pointer-events:none">▾</span>
-        </div>
-      </div>
-      <div style="color:var(--muted);font-size:1rem;margin-top:16px;flex-shrink:0">→</div>
-      <div style="position:relative;flex:1">
-        <div style="font-size:0.55rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);margin-bottom:4px;padding-left:2px">Hasta</div>
-        <div style="position:relative">
-          <select id="chart-to" onchange="applyChartFilter()" style="appearance:none;-webkit-appearance:none;width:100%;background:var(--s2);border:none;border-radius:12px;padding:10px 32px 10px 14px;color:var(--text);font-size:0.88rem;font-weight:600;outline:none;cursor:pointer"></select>
-          <span style="position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:0.6rem;pointer-events:none">▾</span>
-        </div>
-      </div>
-    </div>
-    <div style="position:relative"><canvas id="historialCanvas" width="320" height="200" style="width:100%;height:auto"></canvas><div class="chart-tooltip" id="chart-tooltip"></div></div>
-  </div>
-
   <!-- input file oculto para importar (se activa desde el menú) -->
   <input type="file" id="import-file-input" accept=".json" style="display:none" onchange="importarDatos(event)"/>
+
+  <!-- IDs legacy que renderAhorro necesita — ocultos -->
+  <select id="ahorro-desglose-select" style="display:none" onchange="renderAhorroDesgloseDetail()"></select>
+  <div id="ahorro-desglose-detail" style="display:none"></div>
 </div>
 
 <!-- MODAL: Gráfica distribución -->
@@ -461,7 +559,7 @@ canvas{opacity:0.92;}
     </div>
     <!-- Selector dinámico de ingreso -->
     <div style="margin-bottom:10px">
-      <label class="modal-label">¿De qué ingreso sale este gasto?</label>
+      <label class="modal-label">¿De dónde sale este gasto?</label>
       <select class="inp" id="edit-fuente" style="width:100%"></select>
     </div>
     <!-- Campo oculto para compatibilidad de tipo -->
@@ -619,9 +717,6 @@ function changeMonth(dir) {
   if (dir > 0) {
     const nextIsReal = nextY < now.getFullYear() || (nextY === now.getFullYear() && normM <= now.getMonth());
     if (!nextIsReal) return;
-    const curKey = monthKey(currentYear, currentMonth);
-    const curMd = state.months[curKey];
-    if (!curMd || !curMd.cerrado) { alert('Cierra el mes actual antes de avanzar.'); return; }
   }
   currentMonth = normM;
   currentYear = nextY;
@@ -748,7 +843,6 @@ function updateIngreso(id, field, value) {
   showUpdatedBadge();
 }
 function addIngreso() {
-  if (isMonthClosed()) return toast('Mes cerrado');
   const md = getMonthData(currentKey());
   if (!md.ingresos) md.ingresos = [];
   const defaults = ['Nómina', 'Vales despensa', 'Ingreso extra'];
@@ -759,7 +853,6 @@ function addIngreso() {
   showUpdatedBadge();
 }
 function removeIngreso(id) {
-  if (isMonthClosed()) return toast('Mes cerrado');
   const md = getMonthData(currentKey());
   if (!md.ingresos) return;
   md.ingresos = md.ingresos.filter(i => i.id !== id);
@@ -769,7 +862,6 @@ function removeIngreso(id) {
   showUpdatedBadge();
 }
 function moveIngreso(id, dir) {
-  if (isMonthClosed()) return toast('Mes cerrado');
   const md = getMonthData(currentKey());
   if (!md.ingresos) return;
   const idx = md.ingresos.findIndex(i => i.id === id);
@@ -826,6 +918,7 @@ function renderAll() {
   renderGastos(md, key);
   renderDeuda(md);
   renderHistorial();
+  renderAhorro();
 }
 
 // ════════════════════════════════════════════
@@ -838,17 +931,25 @@ function calcAndRender(md, key) {
   const ingresos = md.ingresos || [];
   const totalIngresos = ingresos.reduce((s,i)=>s+(i.amount||0),0);
 
-  const nominaExp = md.expenses.filter(e => e.type !== 'vales');
-  const valesExp = md.expenses.filter(e => e.type === 'vales');
+  // Gastos del ahorro (fuente == '__AHORRO__') — separados del resto
+  const gastosDelAhorro = md.expenses.filter(e => e.fuente === '__AHORRO__');
+  const totalGastosAhorro = gastosDelAhorro.reduce((s,e)=>s+(e.amount||0),0);
+
+  const nominaExp = md.expenses.filter(e => e.type !== 'vales' && e.fuente !== '__AHORRO__');
+  const valesExp = md.expenses.filter(e => e.type === 'vales' && e.fuente !== '__AHORRO__');
   const tarjetas = md.tarjetas || [];
   const totalTarjetaCortes = tarjetas.reduce((s,t) => s+(t.cargo||0), 0);
   const totalGastos = nominaExp.reduce((s,e) => s+(e.amount||0), 0) + totalTarjetaCortes;
   const totalValesGasto = valesExp.reduce((s,e) => s+(e.amount||0), 0);
-  // Use totalIngresos (all ingresos minus vales) for libre calculation
+
+  // Ahorro registrado del mes actual (resta de ingresos disponibles)
+  const ahorroMes = (md.ahorroReal !== undefined && md.ahorroReal !== null) ? (md.ahorroReal || 0) : 0;
+
   const ingresosNoVales = ingresos.filter(i => !i.name.toLowerCase().includes('vale'));
   const totalIngresosNoVales = ingresosNoVales.reduce((s,i)=>s+(i.amount||0),0);
   const baseParaLibre = totalIngresosNoVales > 0 ? totalIngresosNoVales : nomina;
-  const libre = baseParaLibre - totalGastos;
+  // Libre = ingresos - gastos normales - ahorro comprometido del mes
+  const libre = baseParaLibre - totalGastos - ahorroMes;
   const valesLibre = vales - totalValesGasto;
 
   // Legacy hidden spans for other functions
@@ -919,12 +1020,15 @@ function calcAndRender(md, key) {
 
     if (ingresos.length === 0) {
       // Sin ingresos: fallback simple
-      const allExp = md.expenses.filter(e => e.amount > 0);
+      const allExp = md.expenses.filter(e => e.amount > 0 && e.fuente !== '__AHORRO__');
       if (allExp.length > 0) {
         allExp.forEach(e => { html += mkExpRow(e.icon||'💰', e.name, e.amount, 'var(--red)'); });
         tarjetas.filter(t=>(t.cargo||0)>0).forEach(t => {
           html += mkExpRow('💳', t.name, t.cargo, 'var(--blue)', ' <span style="font-size:0.55rem;background:rgba(0,122,255,0.1);color:var(--blue);padding:1px 5px;border-radius:99px">tarjeta</span>');
         });
+      }
+      if (ahorroMes > 0) {
+        html += mkExpRow('🐷', 'Ahorro del mes', ahorroMes, 'var(--green)');
       }
       html += `<div style="margin-top:10px;border-top:2px solid rgba(0,0,0,0.06);padding-top:10px;display:flex;justify-content:space-between">
         <span style="font-size:0.8rem;font-weight:700">Total gastos</span>
@@ -932,44 +1036,72 @@ function calcAndRender(md, key) {
       </div>`;
     } else {
       // Con ingresos: una sección por ingreso con sus gastos y su propio libre
-      // Tarjetas se asignan al primer ingreso no-vales
       const primerNoVales = ingresos.find(i => !i.name.toLowerCase().includes('vale'));
 
       ingresos.forEach(ing => {
-        const gastos = md.expenses.filter(e => e.fuente === ing.id);
+        // Excluir gastos del ahorro de esta sección
+        const gastos = md.expenses.filter(e => e.fuente === ing.id && e.fuente !== '__AHORRO__');
         const esTarjetasIng = ing === primerNoVales;
         const tarjetasAqui = esTarjetasIng ? tarjetas.filter(t=>(t.cargo||0)>0) : [];
+        // El ahorro del mes se resta del primer ingreso no-vales
+        const ahorroDeEsteIng = (esTarjetasIng && ahorroMes > 0) ? ahorroMes : 0;
         const totalGastosIng = gastos.reduce((s,e)=>s+(e.amount||0),0)
-          + tarjetasAqui.reduce((s,t)=>s+(t.cargo||0),0);
+          + tarjetasAqui.reduce((s,t)=>s+(t.cargo||0),0)
+          + ahorroDeEsteIng;
         const libreIng = (ing.amount||0) - totalGastosIng;
 
-        // Cabecera del ingreso
         html += `<div style="margin-bottom:12px;padding-bottom:4px">
           <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0 4px">
             <span style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted)">💰 ${ing.name}</span>
             <span style="font-size:0.75rem;font-weight:700;color:var(--green)">${fmt(ing.amount)}</span>
           </div>`;
 
-        if (gastos.length > 0 || tarjetasAqui.length > 0) {
-          gastos.forEach(e => { html += mkExpRow(e.icon||'💰', e.name, e.amount, 'var(--red)'); });
-          tarjetasAqui.forEach(t => {
-            html += mkExpRow('💳', t.name, t.cargo, 'var(--blue)', ' <span style="font-size:0.55rem;background:rgba(0,122,255,0.1);color:var(--blue);padding:1px 5px;border-radius:99px">tarjeta</span>');
-          });
-          html += mkLibreRow(libreIng);
-        } else {
-          html += `<div style="padding:6px 8px;font-size:0.75rem;color:var(--muted);font-style:italic">Sin gastos asignados</div>`;
-          html += mkLibreRow(ing.amount||0);
+        gastos.forEach(e => { html += mkExpRow(e.icon||'💰', e.name, e.amount, 'var(--red)'); });
+        tarjetasAqui.forEach(t => {
+          html += mkExpRow('💳', t.name, t.cargo, 'var(--blue)', ' <span style="font-size:0.55rem;background:rgba(0,122,255,0.1);color:var(--blue);padding:1px 5px;border-radius:99px">tarjeta</span>');
+        });
+        if (ahorroDeEsteIng > 0) {
+          html += mkExpRow('🐷', 'Ahorro del mes', ahorroDeEsteIng, 'var(--green)');
         }
 
+        if (gastos.length === 0 && tarjetasAqui.length === 0 && ahorroDeEsteIng === 0) {
+          html += `<div style="padding:6px 8px;font-size:0.75rem;color:var(--muted);font-style:italic">Sin gastos asignados</div>`;
+        }
+        html += mkLibreRow(libreIng);
         html += `</div><div style="border-top:1px solid rgba(0,0,0,0.06);margin-bottom:12px"></div>`;
       });
 
-      // Gastos sin ingreso asignado
-      const sinFuente = md.expenses.filter(e => !e.fuente || !ingresos.find(i=>i.id===e.fuente));
+      // Gastos sin ingreso asignado (excluir gastos del ahorro)
+      const sinFuente = md.expenses.filter(e => e.fuente !== '__AHORRO__' && (!e.fuente || !ingresos.find(i=>i.id===e.fuente)));
       if (sinFuente.length > 0) {
         html += `<div style="margin-bottom:12px">
           <div style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);padding:4px 0 8px">❓ Sin ingreso asignado</div>`;
         sinFuente.forEach(e => { html += mkExpRow(e.icon||'💰', e.name, e.amount, 'var(--muted)'); });
+        html += `</div>`;
+      }
+
+      // Sección del ahorro: gastos + ahorro del mes
+      const hayGastosAhorro = gastosDelAhorro.length > 0;
+      const hayAhorroMes = ahorroMes > 0;
+      if (hayGastosAhorro || hayAhorroMes) {
+        const saldoAhorro = calcSaldoAhorro();
+        html += `<div style="margin-bottom:4px">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0 4px;border-top:2px solid rgba(52,199,89,0.15);margin-top:4px">
+            <span style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--green)">🐷 Ahorro</span>
+            <span style="font-size:0.65rem;color:${saldoAhorro<0?'var(--red)':'var(--muted)'}">Saldo: ${fmt(saldoAhorro)}</span>
+          </div>`;
+        if (hayAhorroMes) {
+          html += mkExpRow('💰', 'Guardado este mes', ahorroMes, 'var(--green)');
+        }
+        if (hayGastosAhorro) {
+          gastosDelAhorro.forEach(e => {
+            html += mkExpRow(e.icon||'💸', e.name, e.amount, 'var(--red)', ' <span style="font-size:0.55rem;background:rgba(255,59,48,0.1);color:var(--red);padding:1px 5px;border-radius:99px">del ahorro</span>');
+          });
+          html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 8px;margin-top:4px;background:rgba(255,59,48,0.06);border-radius:8px">
+            <span style="font-size:0.75rem;font-weight:700;color:var(--red)">Gastado del ahorro</span>
+            <span style="font-size:0.85rem;font-weight:800;color:var(--red)">${fmt(totalGastosAhorro)}</span>
+          </div>`;
+        }
         html += `</div>`;
       }
     }
@@ -1182,57 +1314,66 @@ function renderGastos(md, key) {
     } else {
       const colors = ['var(--blue)','var(--green)','var(--purple)','var(--yellow)','var(--red)'];
       ingresos.forEach((ing, i) => {
-        const gastos = md.expenses.filter(e => e.fuente === ing.id);
+        const gastos = md.expenses.filter(e => e.fuente === ing.id && e.fuente !== '__AHORRO__');
         const total = gastos.reduce((s,e)=>s+(e.amount||0),0);
         grandTotal += total;
         rows.push({label:`${ing.name}`, amount:total, color: colors[i%colors.length], items:gastos});
       });
-      // Gastos sin fuente asignada
-      const sinFuente = md.expenses.filter(e => !e.fuente || !ingresos.find(i=>i.id===e.fuente));
+      // Gastos sin fuente asignada (excluir __AHORRO__ y los de ingresos conocidos)
+      const sinFuente = md.expenses.filter(e => e.fuente !== '__AHORRO__' && (!e.fuente || !ingresos.find(i=>i.id===e.fuente)));
       const totalSinFuente = sinFuente.reduce((s,e)=>s+(e.amount||0),0);
-      if (totalSinFuente > 0 || sinFuente.length > 0) {
+      if (sinFuente.length > 0) {
         grandTotal += totalSinFuente;
         rows.push({label:'Sin ingreso asignado', amount:totalSinFuente, color:'var(--muted)', items:sinFuente});
       }
       grandTotal += totalTarjetas;
       const tarjetaItemsArr = tarjetas.filter(t=>(t.cargo||0)>0).map(t=>({name:t.name,amount:t.cargo,icon:'💳',isTarjeta:true}));
       if (totalTarjetas > 0) rows.push({label:'💳 Tarjetas', amount:totalTarjetas, color:'var(--yellow)', items:[], tarjetaItems:tarjetaItemsArr});
+      // Gastos del ahorro — SIEMPRE AL FINAL, sección propia verde, NO afectan grandTotal
+      const gastosAhorro = md.expenses.filter(e => e.fuente === '__AHORRO__');
+      const totalAhorro = gastosAhorro.reduce((s,e)=>s+(e.amount||0),0);
+      if (gastosAhorro.length > 0) {
+        rows.push({label:'🐷 Del Ahorro', amount:totalAhorro, color:'var(--green)', items:gastosAhorro, esAhorro:true});
+      }
     }
 
     const mkBar = (row, grandTotal) => {
       const { label, amount, color, items, tarjetaItems } = row;
-      const pct = grandTotal > 0 ? (amount/grandTotal)*100 : 0;
-      const barWidth = Math.min(pct, 100);
+      const pct = grandTotal > 0 ? Math.min((amount/grandTotal)*100, 100) : 0;
       const allItems = [...(items||[]), ...(tarjetaItems||[])];
-      const itemsHtml = allItems.length > 0 ? `
-        <div style="margin-top:8px;padding-top:6px;border-top:1px solid rgba(0,0,0,0.05)">
-          ${allItems.map(it => `
-            <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(0,0,0,0.04)">
-              <span style="font-size:0.9rem;width:22px;text-align:center;flex-shrink:0">${it.icon||'💰'}</span>
-              <span style="flex:1;font-size:0.8rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${it.name}</span>
-              ${it.isTarjeta ? `<span style="font-size:0.55rem;background:rgba(0,122,255,0.1);color:var(--blue);padding:1px 5px;border-radius:99px;flex-shrink:0">tarjeta</span>` : ''}
-              <span style="font-size:0.8rem;font-weight:700;color:${it.isTarjeta?'var(--blue)':color};flex-shrink:0">${fmt(it.amount)}</span>
-              ${!it.isTarjeta ? `
-                <button onclick="openEditGasto('${it.id}','${key}')" style="background:none;border:none;color:var(--muted);cursor:pointer;padding:2px;font-size:0.85rem;flex-shrink:0">✏️</button>
-                <button onclick="deleteExpense('${it.id}','${key}')" style="background:none;border:none;color:var(--red);cursor:pointer;padding:2px;font-size:0.75rem;opacity:0.6;flex-shrink:0">✕</button>
-              ` : ''}
-            </div>`).join('')}
-        </div>` : '';
-      return `<div style="margin-bottom:12px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-          <span style="font-size:0.8rem;font-weight:600">${label}</span>
-          <span style="font-size:0.8rem;font-weight:700;color:${color}">${fmt(amount)}</span>
-        </div>
-        <div class="bar-track-s" style="height:8px"><div class="bar-fill-s" style="width:${barWidth}%;background:${color}"></div></div>
-        <div style="font-size:0.62rem;color:${pct>100?'var(--red)':'var(--muted)'};margin-top:2px">${pct.toFixed(1)}% del total${pct>100?' ⚠️':''}</div>
-        ${itemsHtml}
-      </div>`;
+      const itemsHtml = allItems.length > 0
+        ? `<div style="margin-top:4px">
+            ${allItems.map(it => `
+              <div style="display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:10px;margin-bottom:3px;background:rgba(0,0,0,0.025)">
+                <span style="font-size:0.95rem;width:22px;text-align:center;flex-shrink:0">${it.icon||'💰'}</span>
+                <span style="flex:1;font-size:0.82rem;font-weight:500;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${it.name}</span>
+                ${it.isTarjeta ? `<span style="font-size:0.55rem;background:rgba(0,122,255,0.1);color:var(--blue);padding:2px 6px;border-radius:99px;flex-shrink:0;font-weight:700">tarjeta</span>` : ''}
+                <span style="font-size:0.85rem;font-weight:700;color:${it.isTarjeta?'var(--blue)':color};flex-shrink:0;min-width:52px;text-align:right">${fmt(it.amount)}</span>
+                ${!it.isTarjeta ? `
+                  <button onclick="openEditGasto('${it.id}','${key}')" style="background:none;border:none;color:var(--muted);cursor:pointer;padding:3px;font-size:0.85rem;flex-shrink:0;line-height:1">✏️</button>
+                  <button onclick="deleteExpense('${it.id}','${key}')" style="background:none;border:none;color:var(--red);cursor:pointer;padding:3px;font-size:0.75rem;opacity:0.5;flex-shrink:0;line-height:1">✕</button>
+                ` : ''}
+              </div>`).join('')}
+          </div>`
+        : '';
+      return `
+        <div style="margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid rgba(0,0,0,0.05)">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+            <span style="font-size:0.82rem;font-weight:700;color:var(--text)">${label}</span>
+            <span style="font-size:0.88rem;font-weight:800;color:${color};font-variant-numeric:tabular-nums">${fmt(amount)}</span>
+          </div>
+          <div style="height:6px;background:rgba(0,0,0,0.07);border-radius:99px;overflow:hidden;margin-bottom:4px">
+            <div style="height:100%;width:${pct}%;background:${color};border-radius:99px;transition:width 0.6s ease"></div>
+          </div>
+          <div style="font-size:0.62rem;color:var(--muted)">${pct.toFixed(1)}% del total</div>
+          ${itemsHtml}
+        </div>`;
     };
 
-    resumenEl.innerHTML = rows.map(r => mkBar(r, grandTotal)).join('') +
-      `<div style="padding-top:8px;border-top:1px solid rgba(0,0,0,0.05);display:flex;justify-content:space-between">
-        <span style="font-size:0.8rem;font-weight:700">Total gastado</span>
-        <span style="font-weight:800;color:var(--red)">${fmt(grandTotal)}</span>
+    resumenEl.innerHTML = rows.filter(r => !r.esAhorro).map(r => mkBar(r, grandTotal)).join('') +
+      `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0 2px;border-top:2px solid rgba(0,0,0,0.07);margin-top:2px">
+        <span style="font-size:0.82rem;font-weight:700;color:var(--text)">Total gastado</span>
+        <span style="font-size:0.95rem;font-weight:800;color:var(--red);font-variant-numeric:tabular-nums">${fmt(grandTotal)}</span>
       </div>`;
   }
 
@@ -1285,7 +1426,7 @@ function renderGastos(md, key) {
   let html = '';
 
   ingresos.forEach((ing, i) => {
-    const gastos = md.expenses.filter(e => e.fuente === ing.id);
+    const gastos = md.expenses.filter(e => e.fuente === ing.id && e.fuente !== '__AHORRO__');
     const total = gastos.reduce((s,e)=>s+(e.amount||0),0);
     const color = colorList[i % colorList.length];
     const innerHtml = gastos.length > 0
@@ -1322,8 +1463,8 @@ function renderGastos(md, key) {
     </div>`;
   }
 
-  // Gastos sin ingreso asignado
-  const sinFuente = md.expenses.filter(e => !e.fuente || !ingresos.find(i=>i.id===e.fuente));
+  // Gastos sin ingreso asignado (excluir del ahorro)
+  const sinFuente = md.expenses.filter(e => e.fuente !== '__AHORRO__' && (!e.fuente || !ingresos.find(i=>i.id===e.fuente)));
   if (sinFuente.length > 0) {
     const totalSF = sinFuente.reduce((s,e)=>s+(e.amount||0),0);
     html += `<div class="block fadein">
@@ -1362,7 +1503,6 @@ function onEditTypeChange() {
 }
 
 function openAddGasto() {
-  if (isMonthClosed()) return toast('Mes cerrado');
   document.getElementById('edit-gasto-id').value = '';
   document.getElementById('edit-name').value = '';
   document.getElementById('edit-amount').value = '';
@@ -1385,7 +1525,6 @@ function populateFuenteSelector(currentFuente) {
     sel.innerHTML = ingresos.map(ing =>
       `<option value="${ing.id}" ${currentFuente===ing.id?'selected':''}>${ing.name}</option>`
     ).join('');
-    // Si ninguno está seleccionado, seleccionar el primero por default
     if (!currentFuente || !ingresos.find(i => i.id === currentFuente)) {
       sel.value = ingresos[0].id;
     }
@@ -1393,7 +1532,6 @@ function populateFuenteSelector(currentFuente) {
 }
 
 function openEditGasto(id, key) {
-  if (isMonthClosed(key)) return toast('Mes cerrado');
   const md = getMonthData(key);
   const e = md.expenses.find(x => x.id === id);
   if (!e) return;
@@ -1409,7 +1547,6 @@ function openEditGasto(id, key) {
 }
 
 function saveEditGasto() {
-  if (isMonthClosed()) return toast('Mes cerrado');
   const id = document.getElementById('edit-gasto-id').value;
   const key = currentKey();
   const md = getMonthData(key);
@@ -1443,7 +1580,6 @@ function saveEditGasto() {
 }
 
 function deleteExpense(id, key) {
-  if (isMonthClosed(key)) return toast('Mes cerrado');
   if (!confirm('¿Eliminar este gasto?')) return;
   const md = getMonthData(key);
   md.expenses = md.expenses.filter(e => e.id !== id);
@@ -1785,103 +1921,24 @@ function removeTarjeta(id) {
 }
 
 // ════════════════════════════════════════════
-//  CERRAR MES
+//  CERRAR MES (auto — sin UI, solo sincroniza ahorroReal desde depósitos)
 // ════════════════════════════════════════════
 function cerrarMes() {
-  const input = document.getElementById('ahorro-real-input');
-  const val = parseFloat(input.dataset.raw) || parseFloat(input.value) || 0;
-  if (isNaN(val) || val < 0) return alert('Ingresa un monto válido');
-  const key = currentKey();
-  const md = getMonthData(key);
-  md.ahorroReal = val;
-  md.cerrado = true;
-  const tarjetas = md.tarjetas || [];
-  md.deudaSnapshot = tarjetas.map(t => ({ id: t.id, name: t.name, saldo: t.saldo||0, abono: t.cargo||0 }));
-  saveState();
-
-  // Crear el mes siguiente con tarjetas ya arrastradas (saldo - cargo)
-  const nextM = currentMonth + 1;
-  const nextY = currentYear + (nextM > 11 ? 1 : 0);
-  const normM = nextM % 12;
-  const nextKey = monthKey(nextY, normM);
-  const now = new Date();
-  const nextIsReal = nextY < now.getFullYear() || (nextY === now.getFullYear() && normM <= now.getMonth());
-
-  if (nextIsReal && !state.months[nextKey]) {
-    // Arrastrar tarjetas con saldo correcto
-    const tarjetasArrastradas = tarjetas.map(t => {
-      const saldoArrastrado = Math.max(0, (t.saldo||0) - (t.cargo||0));
-      return {
-        ...t,
-        saldo: saldoArrastrado,
-        saldoBase: saldoArrastrado,
-        cargo: 0,
-        cargoItems: []
-      };
-    });
-    state.months[nextKey] = {
-      nomina: 0, vales: 0,
-      ingresos: [],
-      expenses: [],
-      tarjetas: tarjetasArrastradas
-    };
-    saveState();
-  }
-
-  // Avanzar automáticamente al siguiente mes
-  if (nextIsReal) {
-    currentMonth = normM;
-    currentYear = nextY;
-  }
-
-  renderAll();
-  toast('✅ Mes cerrado — bienvenido a ' + MONTHS_ES[normM]);
+  // No-op: cerrar mes ya no es manual. El ahorro se gestiona desde el apartado de Ahorro.
 }
 function editarAhorro() {
-  const key = currentKey();
+  // No-op: edición se hace directamente en el apartado de Ahorro.
+}
+function syncAhorroRealDesdeDepositos(key) {
   const md = getMonthData(key);
-  md.cerrado = false;
-  document.getElementById('ahorro-real-input').value = md.ahorroReal || '';
-  saveState();
-  renderAll();
+  if (md.depositos && md.depositos.length > 0) {
+    md.ahorroReal = md.depositos.reduce((s, d) => s + (d.amount || 0), 0);
+  }
 }
 function renderCerrarMes(md) {
-  const badge = document.getElementById('mes-cerrado-badge');
-  const input = document.getElementById('ahorro-real-input');
-  const display = document.getElementById('ahorro-real-display');
-  const valEl = document.getElementById('ahorro-real-val');
-  if (md.cerrado && md.ahorroReal !== undefined) {
-    badge.style.display = 'inline-block';
-    input.parentElement.style.display = 'none';
-    display.style.display = 'block';
-    valEl.textContent = fmt(md.ahorroReal);
-  } else {
-    badge.style.display = 'none';
-    input.parentElement.style.display = 'flex';
-    display.style.display = 'none';
-    // Pre-fill con libre de Nómina (primer ingreso no-vales)
-    if (md.ingresos && md.ingresos.length > 0) {
-      const primerNoVales = md.ingresos.find(i => !i.name.toLowerCase().includes('vale'));
-      if (primerNoVales) {
-        const tarjetas = md.tarjetas || [];
-        const gastosDeLa = md.expenses.filter(e => e.fuente === primerNoVales.id);
-        const totalGastosNomina = gastosDeLa.reduce((s,e)=>s+(e.amount||0),0)
-          + tarjetas.reduce((s,t)=>s+(t.cargo||0),0);
-        const libreNomina = (primerNoVales.amount||0) - totalGastosNomina;
-        const val = libreNomina > 0 ? libreNomina : (md.ahorroReal || 0);
-        input.dataset.raw = val;
-        input.value = val > 0 ? fmtNum(val) : '';
-      } else {
-        const val = md.ahorroReal || 0;
-        input.dataset.raw = val;
-        input.value = val > 0 ? fmtNum(val) : '';
-      }
-    } else {
-      const val = md.ahorroReal || 0;
-      input.dataset.raw = val;
-      input.value = val > 0 ? fmtNum(val) : '';
-    }
-  }
+  // Sección eliminada — el ahorro se maneja en el apartado de Ahorro.
+  // Sincronizar ahorroReal desde depósitos automáticamente.
+  syncAhorroRealDesdeDepositos(currentKey());
 }
 
 function focusAhorroInput(el) {
@@ -1907,58 +1964,25 @@ function renderHistorial() {
     keys.map(k => {
       const [y,m] = k.split('-').map(Number);
       const md = state.months[k];
-      const tieneAhorro = md.cerrado && md.ahorroReal !== undefined;
+      const tieneAhorro = getTotalAhorradoMes(k) > 0;
       return `<option value="${k}">${MONTHS_ES[m-1]} ${y}${tieneAhorro?' ✅':''}</option>`;
     }).join('');
   if (keys.length === 1) { sel.value = keys[0]; renderHistorialDetail(); }
-
-  const allKeys = Object.keys(state.months).sort();
-  const currentKey2 = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-  const optionKeys = [...new Set([...allKeys, currentKey2])].sort();
-  const optionsHTML = optionKeys.map(k => {
-    const [y,m] = k.split('-').map(Number);
-    return `<option value="${k}">${MONTHS_ES[m-1]} ${y}</option>`;
-  }).join('');
-
-  const fromEl = document.getElementById('chart-from');
-  const toEl   = document.getElementById('chart-to');
-  if (!fromEl || !toEl) return;
-  const savedFrom = fromEl.value;
-  const savedTo   = toEl.value;
-  fromEl.innerHTML = optionsHTML;
-  toEl.innerHTML   = optionsHTML;
-  if (!fromEl.dataset.init) {
-    fromEl.dataset.init = '1';
-    fromEl.value = allKeys.length ? allKeys[0] : currentKey2;
-    toEl.value   = currentKey2;
-  } else {
-    fromEl.value = optionKeys.includes(savedFrom) ? savedFrom : (allKeys[0]||currentKey2);
-    toEl.value   = optionKeys.includes(savedTo)   ? savedTo   : currentKey2;
-  }
-  applyChartFilter();
 }
 
-function applyChartFilter() {
-  const fromEl = document.getElementById('chart-from');
-  const toEl   = document.getElementById('chart-to');
-  if (!fromEl || !toEl) return;
-  const fromKey = fromEl.value;
-  const toKey   = toEl.value;
-  const chartKeys = Object.keys(state.months)
-    .filter(k => {
-      const md = state.months[k];
-      return md.cerrado && md.ahorroReal !== undefined && k >= fromKey && k <= toKey;
-    }).sort();
-  drawHistorialChart(chartKeys);
-}
+// ════════════════════════════════════════════
+//  EXPORTAR / IMPORTAR
 
 function renderHistorialDetail() {
-  const key = document.getElementById('historial-select').value;
+  const sel = document.getElementById('historial-select');
   const detail = document.getElementById('historial-detail');
+  const key = sel ? sel.value : '';
   if (!key) { detail.style.display = 'none'; return; }
   const md = state.months[key];
+  if (!md) { detail.style.display = 'none'; return; }
   const tarjetas = md.tarjetas || [];
-  const tieneAhorro = md.cerrado && md.ahorroReal !== undefined;
+  const tieneAhorro = getTotalAhorradoMes(key) > 0;
+  const ahorroReal = getTotalAhorradoMes(key);
   const snap = md.deudaSnapshot || tarjetas.map(t => ({ id:t.id, name:t.name, saldo:t.saldo||0, abono:t.cargo||0 }));
   const totalSaldo = snap.reduce((s,t)=>s+t.saldo,0);
   const totalAbono = snap.reduce((s,t)=>s+t.abono,0);
@@ -1966,53 +1990,125 @@ function renderHistorialDetail() {
   const totalIngresos = ingresos.reduce((s,i)=>s+(i.amount||0),0) || (md.nomina||0);
   const hdTarjetas = md.tarjetas || [];
   const hdTotalCortes = hdTarjetas.reduce((s,t)=>s+(t.cargo||0),0);
-  const hdTotalGastos = md.expenses.filter(e=>e.type!=='vales').reduce((s,e)=>s+(e.amount||0),0) + hdTotalCortes;
+  const hdTotalGastos = md.expenses.filter(e=>e.type!=='vales'&&e.fuente!=='__AHORRO__').reduce((s,e)=>s+(e.amount||0),0) + hdTotalCortes;
   const hdLibre = totalIngresos - hdTotalGastos;
+
+  // ── Ahorro acumulado hasta este mes ──
+  const depositos = md.depositos || [];
+  const gastosDelAhorro = (md.expenses || []).filter(e => e.fuente === '__AHORRO__');
+  // Acumulado hasta este mes (inclusive)
+  const allKeysSorted = Object.keys(state.months).sort().filter(k => k <= key);
+  const ahorroAcumulado = allKeysSorted.reduce((s, k) => s + getTotalAhorradoMes(k), 0);
+  const gastadoAcumulado = allKeysSorted.reduce((s, k) => {
+    const m2 = state.months[k];
+    return s + (m2 ? (m2.expenses||[]).filter(e=>e.fuente==='__AHORRO__').reduce((a,e)=>a+(e.amount||0),0) : 0);
+  }, 0);
+  const netoAhorro = ahorroAcumulado - gastadoAcumulado;
+  // Solo este mes para el detalle de depósitos/salidas
+  const totalGastadoAhorro = gastosDelAhorro.reduce((s, e) => s + (e.amount || 0), 0);
+
+  const depositosHtml = depositos.length > 0
+    ? depositos.map(d => `
+        <div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(52,199,89,0.1)">
+          <span style="font-size:0.85rem;flex-shrink:0">🐷</span>
+          <span style="flex:1;font-size:0.82rem;font-weight:500">${d.nota || 'Depósito'}</span>
+          ${d.fecha ? `<span style="font-size:0.65rem;color:var(--muted)">${d.fecha}</span>` : ''}
+          <span style="font-size:0.82rem;font-weight:700;color:var(--green);flex-shrink:0">+${fmt(d.amount)}</span>
+        </div>`).join('')
+    : (md.ahorroReal ? `<div style="padding:6px 0;font-size:0.82rem;color:var(--muted)">Registrado al cerrar mes</div>` : '');
+
+  const gastosAhorroHtml = gastosDelAhorro.length > 0
+    ? gastosDelAhorro.map(e => `
+        <div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(0,0,0,0.05)">
+          <span style="font-size:0.9rem;width:20px;text-align:center;flex-shrink:0">${e.icon||'💸'}</span>
+          <span style="flex:1;font-size:0.82rem;font-weight:500">${e.name}</span>
+          <span style="font-size:0.82rem;font-weight:700;color:var(--red);flex-shrink:0">-${fmt(e.amount)}</span>
+        </div>`).join('')
+    : '';
+
+  const ahorroSection = tieneAhorro || gastosDelAhorro.length > 0 ? `
+    <div style="background:rgba(52,199,89,0.05);border:1px solid rgba(52,199,89,0.2);border-radius:14px;padding:14px;margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--green)">🐷 Ahorro acumulado</div>
+        <div style="font-size:0.6rem;color:var(--muted)">hasta este mes</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center;margin-bottom:${depositosHtml||gastosAhorroHtml?'12px':'0'}">
+        <div style="background:rgba(52,199,89,0.08);border-radius:10px;padding:8px 4px">
+          <div style="font-size:0.92rem;font-weight:800;color:var(--green)">${fmt(ahorroAcumulado)}</div>
+          <div style="font-size:0.55rem;color:var(--muted);margin-top:2px;text-transform:uppercase">Guardado</div>
+        </div>
+        <div style="background:rgba(255,59,48,0.06);border-radius:10px;padding:8px 4px">
+          <div style="font-size:0.92rem;font-weight:800;color:var(--red)">${fmt(gastadoAcumulado)}</div>
+          <div style="font-size:0.55rem;color:var(--muted);margin-top:2px;text-transform:uppercase">Gastado</div>
+        </div>
+        <div style="background:rgba(0,0,0,0.04);border-radius:10px;padding:8px 4px">
+          <div style="font-size:0.92rem;font-weight:800;color:${netoAhorro>=0?'var(--green)':'var(--red)'}">${fmt(netoAhorro)}</div>
+          <div style="font-size:0.55rem;color:var(--muted);margin-top:2px;text-transform:uppercase">Saldo</div>
+        </div>
+      </div>
+      ${depositosHtml ? `<div style="border-top:1px solid rgba(52,199,89,0.15);padding-top:8px;margin-bottom:${gastosAhorroHtml?'10px':'0'}">${depositosHtml}</div>` : ''}
+      ${gastosAhorroHtml ? `
+        <div style="border-top:1px solid rgba(0,0,0,0.06);padding-top:8px;margin-top:${depositosHtml?'0':'0'}">
+          <div style="font-size:0.58rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:4px">Salidas del ahorro</div>
+          ${gastosAhorroHtml}
+        </div>` : ''}
+    </div>` : '';
 
   const deudaRows = snap.map(t => `
     <div style="padding:10px 0;border-bottom:1px solid rgba(0,0,0,0.05)">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-        <span style="font-size:0.85rem;font-weight:700">💳 ${t.name}</span>
-      </div>
+      <div style="font-size:0.82rem;font-weight:700;margin-bottom:6px">💳 ${t.name}</div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;text-align:center">
         <div style="background:rgba(255,59,48,0.06);border-radius:10px;padding:7px 4px">
-          <div style="font-size:0.88rem;font-weight:800;color:var(--red)">${fmt(t.saldo)}</div>
-          <div style="font-size:0.55rem;color:var(--muted);margin-top:2px;text-transform:uppercase;letter-spacing:0.05em">Saldo</div>
+          <div style="font-size:0.85rem;font-weight:800;color:var(--red)">${fmt(t.saldo)}</div>
+          <div style="font-size:0.55rem;color:var(--muted);margin-top:2px;text-transform:uppercase">Saldo</div>
         </div>
         <div style="background:rgba(255,159,10,0.06);border-radius:10px;padding:7px 4px">
-          <div style="font-size:0.88rem;font-weight:800;color:var(--yellow)">${fmt(t.abono)}</div>
-          <div style="font-size:0.55rem;color:var(--muted);margin-top:2px;text-transform:uppercase;letter-spacing:0.05em">Abonado</div>
+          <div style="font-size:0.85rem;font-weight:800;color:var(--yellow)">${fmt(t.abono)}</div>
+          <div style="font-size:0.55rem;color:var(--muted);margin-top:2px;text-transform:uppercase">Abonado</div>
         </div>
         <div style="background:rgba(0,122,255,0.06);border-radius:10px;padding:7px 4px">
-          <div style="font-size:0.88rem;font-weight:800;color:var(--blue)">${fmt(Math.max(0,t.saldo-t.abono))}</div>
-          <div style="font-size:0.55rem;color:var(--muted);margin-top:2px;text-transform:uppercase;letter-spacing:0.05em">Resta</div>
+          <div style="font-size:0.85rem;font-weight:800;color:var(--blue)">${fmt(Math.max(0,t.saldo-t.abono))}</div>
+          <div style="font-size:0.55rem;color:var(--muted);margin-top:2px;text-transform:uppercase">Resta</div>
         </div>
       </div>
     </div>`).join('');
 
   detail.innerHTML = `
-    <div class="kpi-row" style="margin-bottom:10px">
-      <div class="kpi g"><div class="kpi-label">Ingresos</div><div class="kpi-val">${fmt(totalIngresos)}</div></div>
-      <div class="kpi r"><div class="kpi-label">Gastos</div><div class="kpi-val">${fmt(hdTotalGastos)}</div></div>
+    <div style="text-align:center;margin-bottom:14px">
+      <span style="font-size:0.72rem;font-weight:700;padding:4px 12px;border-radius:99px;background:${tieneAhorro?'rgba(52,199,89,0.12)':'rgba(0,0,0,0.06)'};color:${tieneAhorro?'var(--green)':'var(--muted)'}">${tieneAhorro?'🐷 Con ahorro':'📋 Sin ahorro registrado'}</span>
     </div>
-    <div class="kpi-row" style="margin-bottom:14px">
-      <div class="kpi b"><div class="kpi-label">Libre calculado</div><div class="kpi-val" style="color:${hdLibre>=0?'var(--green)':'var(--red)'}">${fmt(hdLibre)}</div></div>
-      <div class="kpi p"><div class="kpi-label">Ahorro real</div><div class="kpi-val">${tieneAhorro?fmt(md.ahorroReal):'—'}</div></div>
-    </div>
-    <div style="text-align:center;margin:-4px 0 14px;font-size:0.72rem;color:var(--muted)">${tieneAhorro?'✅ Mes cerrado':'⏳ Sin cerrar'}</div>
 
-    <div onclick="toggleDeudaDesglose()" style="background:rgba(255,59,48,0.06);border:1px solid rgba(255,59,48,0.15);border-radius:14px;padding:12px 14px;margin-bottom:14px;cursor:pointer;user-select:none">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-        <span style="font-size:0.7rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--red)">💳 Deuda ese mes</span>
-        <span id="hd-deuda-arrow" style="font-size:0.8rem;color:var(--muted)">▾ Ver tarjetas</span>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px">
+      <div style="background:#fff;border:1px solid rgba(0,0,0,0.06);border-radius:14px;padding:12px 8px;text-align:center;box-shadow:0 1px 6px rgba(0,0,0,0.04)">
+        <div style="font-size:0.95rem;font-weight:800;color:var(--green)">${fmt(totalIngresos)}</div>
+        <div style="font-size:0.58rem;color:var(--muted);margin-top:3px;text-transform:uppercase;letter-spacing:0.05em">Ingresos</div>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center">
-        <div><div style="font-size:1rem;font-weight:800;color:var(--red)">${fmt(totalSaldo)}</div><div style="font-size:0.58rem;color:var(--muted);margin-top:2px;text-transform:uppercase;letter-spacing:0.06em">Saldo total</div></div>
-        <div><div style="font-size:1rem;font-weight:800;color:var(--yellow)">${fmt(totalAbono)}</div><div style="font-size:0.58rem;color:var(--muted);margin-top:2px;text-transform:uppercase;letter-spacing:0.06em">Abonado</div></div>
-        <div><div style="font-size:1rem;font-weight:800;color:var(--blue)">${fmt(Math.max(0,totalSaldo-totalAbono))}</div><div style="font-size:0.58rem;color:var(--muted);margin-top:2px;text-transform:uppercase;letter-spacing:0.06em">Resta</div></div>
+      <div style="background:#fff;border:1px solid rgba(0,0,0,0.06);border-radius:14px;padding:12px 8px;text-align:center;box-shadow:0 1px 6px rgba(0,0,0,0.04)">
+        <div style="font-size:0.95rem;font-weight:800;color:var(--red)">${fmt(hdTotalGastos)}</div>
+        <div style="font-size:0.58rem;color:var(--muted);margin-top:3px;text-transform:uppercase;letter-spacing:0.05em">Gastos</div>
+      </div>
+      <div style="background:#fff;border:1px solid rgba(0,0,0,0.06);border-radius:14px;padding:12px 8px;text-align:center;box-shadow:0 1px 6px rgba(0,0,0,0.04)">
+        <div style="font-size:0.95rem;font-weight:800;color:${hdLibre>=0?'var(--green)':'var(--red)'}">${fmt(hdLibre)}</div>
+        <div style="font-size:0.58rem;color:var(--muted);margin-top:3px;text-transform:uppercase;letter-spacing:0.05em">Libre</div>
+      </div>
+    </div>
+
+    ${ahorroSection}
+
+    ${snap.length > 0 ? `
+    <div onclick="toggleDeudaDesglose()" style="background:rgba(255,59,48,0.05);border:1px solid rgba(255,59,48,0.15);border-radius:14px;padding:12px 14px;cursor:pointer;user-select:none">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font-size:0.65rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--red)">💳 Deuda ese mes</span>
+        <span id="hd-deuda-arrow" style="font-size:0.75rem;color:var(--muted)">▾ Ver</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center">
+        <div><div style="font-size:0.92rem;font-weight:800;color:var(--red)">${fmt(totalSaldo)}</div><div style="font-size:0.55rem;color:var(--muted);margin-top:2px;text-transform:uppercase">Saldo</div></div>
+        <div><div style="font-size:0.92rem;font-weight:800;color:var(--yellow)">${fmt(totalAbono)}</div><div style="font-size:0.55rem;color:var(--muted);margin-top:2px;text-transform:uppercase">Abonado</div></div>
+        <div><div style="font-size:0.92rem;font-weight:800;color:var(--blue)">${fmt(Math.max(0,totalSaldo-totalAbono))}</div><div style="font-size:0.55rem;color:var(--muted);margin-top:2px;text-transform:uppercase">Resta</div></div>
       </div>
       <div id="hd-deuda-desglose" style="display:none;margin-top:10px;border-top:1px solid rgba(0,0,0,0.05);padding-top:6px">${deudaRows}</div>
-    </div>`;
+    </div>` : ''}
+  `;
   detail.style.display = 'block';
 }
 
@@ -2026,73 +2122,435 @@ function toggleDeudaDesglose() {
 }
 
 // ════════════════════════════════════════════
-//  HISTORIAL CHART
+//  AHORRO
 // ════════════════════════════════════════════
-function drawHistorialChart(keys) {
-  const canvas = document.getElementById('historialCanvas');
-  if (!canvas) return;
-  const ctx = canvas.getContext('2d');
-  const W = canvas.width, H = canvas.height;
-  ctx.clearRect(0,0,W,H);
 
-  if (keys.length === 0) {
-    ctx.fillStyle = '#aaa'; ctx.font = '13px -apple-system,sans-serif'; ctx.textAlign = 'center';
-    ctx.fillText('Cierra al menos un mes para', W/2, H/2-10);
-    ctx.fillText('ver la gráfica de ahorro real', W/2, H/2+10);
+// Devuelve los depósitos del mes (nuevo sistema)
+function getDepositos(key) {
+  const md = state.months[key];
+  if (!md) return [];
+  if (!md.depositos) md.depositos = [];
+  return md.depositos;
+}
+
+// Total ahorrado en un mes = suma de depósitos (nuevo) O ahorroReal legacy (si no tiene depósitos)
+function getTotalAhorradoMes(key) {
+  const md = state.months[key];
+  if (!md) return 0;
+  if (md.depositos && md.depositos.length > 0) {
+    return md.depositos.reduce((s, d) => s + (d.amount || 0), 0);
+  }
+  return md.ahorroReal || 0;
+}
+
+function calcSaldoAhorro(upToKey) {
+  // upToKey: solo contar meses <= upToKey (inclusive). Si no se pasa, usa el mes actual.
+  const limit = upToKey || currentKey();
+  const allKeys = Object.keys(state.months).sort().filter(k => k <= limit);
+  let saldo = 0;
+  allKeys.forEach(k => {
+    const m2 = state.months[k];
+    if (!m2) return;
+    saldo += getTotalAhorradoMes(k);
+    const gastosK = (m2.expenses || []).filter(e => e.fuente === '__AHORRO__').reduce((s, e) => s + (e.amount || 0), 0);
+    saldo -= gastosK;
+  });
+  return saldo;
+}
+
+function renderAhorro() {
+  const allKeys = Object.keys(state.months).sort();
+
+  const nowKey = currentKey();
+  const saldoReal = calcSaldoAhorro(nowKey);
+
+  const keysHastaAhora = allKeys.filter(k => k <= nowKey);
+  const mesesConAhorro = keysHastaAhora.filter(k => getTotalAhorradoMes(k) > 0);
+  const totalBruto = mesesConAhorro.reduce((s, k) => s + getTotalAhorradoMes(k), 0);
+  const totalGastadoAhorro = keysHastaAhora.reduce((s, k) => {
+    const m2 = state.months[k];
+    return s + (m2 ? (m2.expenses || []).filter(e => e.fuente === '__AHORRO__').reduce((a, e) => a + (e.amount || 0), 0) : 0);
+  }, 0);
+  const prevM = currentMonth === 0 ? 11 : currentMonth - 1;
+  const prevY = currentMonth === 0 ? currentYear - 1 : currentYear;
+  const prevKey = monthKey(prevY, prevM);
+  const curAhorro = getTotalAhorradoMes(nowKey);
+  const prevAhorro = getTotalAhorradoMes(prevKey);
+
+  document.getElementById('ahorro-kpi-prev').textContent = prevAhorro > 0 ? fmt(prevAhorro) : '—';
+  document.getElementById('ahorro-kpi-prev-label').textContent = `${MONTHS_ES[prevM]} ${prevY}`;
+  document.getElementById('ahorro-kpi-cur').textContent = curAhorro > 0 ? fmt(curAhorro) : '—';
+  document.getElementById('ahorro-kpi-cur-label').textContent = `${MONTHS_ES[currentMonth]} ${currentYear}`;
+  const kpiTotal = document.getElementById('ahorro-kpi-total');
+  kpiTotal.textContent = fmt(saldoReal);
+  kpiTotal.style.color = saldoReal < 0 ? 'var(--red)' : 'var(--green)';
+  document.getElementById('ahorro-kpi-months').textContent =
+    totalGastadoAhorro > 0
+      ? `Ahorrado: ${fmt(totalBruto)} · Gastado: ${fmt(totalGastadoAhorro)}`
+      : `${mesesConAhorro.length} ${mesesConAhorro.length === 1 ? 'mes' : 'meses'} con ahorro registrado`;
+
+  // Render lista de depósitos del mes actual
+  renderDepositosList(nowKey);
+  // Render salidas del ahorro del mes actual
+  renderSalidasAhorro(nowKey);
+
+  // Populate select desglose (now lives in historial page)
+  const sel = document.getElementById('ahorro-desglose-select');
+  if (!sel) return;
+  const savedVal = sel.value;
+  const allWithAhorro = [...new Set([...mesesConAhorro, ...Object.keys(state.months)])].sort().reverse()
+    .filter(k => getTotalAhorradoMes(k) > 0 || (state.months[k] && (state.months[k].depositos||[]).length > 0));
+  sel.innerHTML = `<option value="">— Selecciona un mes —</option>` +
+    allWithAhorro.map(k => {
+      const [y, m] = k.split('-').map(Number);
+      const md = state.months[k];
+      const gastosK = (md.expenses || []).filter(e => e.fuente === '__AHORRO__').reduce((s, e) => s + (e.amount || 0), 0);
+      const neto = getTotalAhorradoMes(k) - gastosK;
+      return `<option value="${k}">${MONTHS_ES[m - 1]} ${y} · ${fmt(neto)}</option>`;
+    }).join('');
+  if (savedVal && sel.querySelector(`option[value="${savedVal}"]`)) sel.value = savedVal;
+  renderAhorroDesgloseDetail();
+}
+
+// ── Lista de depósitos (mes actual) ──
+function renderDepositosList(key) {
+  const listEl = document.getElementById('ahorro-depositos-list');
+  const badgeEl = document.getElementById('ahorro-depositos-total-badge');
+  if (!listEl) return;
+  const depositos = getDepositos(key);
+  const total = depositos.reduce((s, d) => s + (d.amount || 0), 0);
+  if (badgeEl) badgeEl.textContent = total > 0 ? fmt(total) : '';
+
+  if (depositos.length === 0) {
+    listEl.innerHTML = `<p class="small-muted" style="text-align:center;padding:12px 0;font-size:0.78rem">Sin depósitos este mes — toca "+ Agregar" arriba</p>`;
     return;
   }
-  if (keys.length === 1) {
-    const md = state.months[keys[0]];
-    const [y,m] = keys[0].split('-').map(Number);
-    ctx.fillStyle = '#aaa'; ctx.font = '13px -apple-system,sans-serif'; ctx.textAlign = 'center';
-    ctx.fillText(`${MONTHS_ES[m-1]}: ${fmt(md.ahorroReal)} ahorrado`, W/2, H/2);
-    ctx.fillText('Necesitas otro mes para la gráfica', W/2, H/2+20);
+
+  listEl.innerHTML = depositos.map((d, i) => `
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(0,0,0,0.05)">
+      <span style="font-size:1.1rem;width:28px;text-align:center;flex-shrink:0">🐷</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:0.85rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${d.nota || 'Depósito al ahorro'}</div>
+        ${d.fecha ? `<div style="font-size:0.62rem;color:var(--muted);margin-top:1px">${d.fecha}</div>` : ''}
+      </div>
+      <span style="font-size:0.9rem;font-weight:700;color:var(--green);flex-shrink:0">+${fmt(d.amount)}</span>
+      <button onclick="editDeposito(${i},'${key}')" style="background:none;border:none;color:var(--muted);font-size:0.9rem;padding:4px;cursor:pointer;flex-shrink:0">✏️</button>
+      <button onclick="deleteDeposito(${i},'${key}')" style="background:none;border:none;color:var(--red);font-size:0.8rem;padding:4px;cursor:pointer;opacity:0.6;flex-shrink:0">✕</button>
+    </div>`).join('') +
+    `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0 2px;border-top:2px solid rgba(52,199,89,0.15);margin-top:4px">
+      <span style="font-size:0.75rem;font-weight:700;color:var(--green)">TOTAL DEPOSITADO</span>
+      <span style="font-size:1rem;font-weight:800;color:var(--green)">${fmt(total)}</span>
+    </div>`;
+}
+
+// ── Salidas del ahorro (mes actual) ──
+function renderSalidasAhorro(key) {
+  const block = document.getElementById('ahorro-salidas-block');
+  const listEl = document.getElementById('ahorro-salidas-list');
+  const badgeEl = document.getElementById('ahorro-salidas-total-badge');
+  if (!block || !listEl) return;
+  const md = getMonthData(key);
+  const salidas = (md.expenses || []).filter(e => e.fuente === '__AHORRO__');
+  const total = salidas.reduce((s, e) => s + (e.amount || 0), 0);
+
+  if (salidas.length === 0) {
+    block.style.display = 'none';
     return;
   }
+  block.style.display = 'block';
+  if (badgeEl) badgeEl.textContent = fmt(total);
 
-  const data = keys.map(k => state.months[k].ahorroReal || 0);
-  const max = Math.max(...data, 1);
-  const pad = {t:20,b:36,l:56,r:16};
-  const cw = W-pad.l-pad.r, ch = H-pad.t-pad.b;
+  listEl.innerHTML = salidas.map(e => `
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(0,0,0,0.05)">
+      <span style="font-size:1.1rem;width:28px;text-align:center;flex-shrink:0">${e.icon || '💸'}</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:0.85rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${e.name}</div>
+      </div>
+      <span style="font-size:0.9rem;font-weight:700;color:var(--red);flex-shrink:0">-${fmt(e.amount)}</span>
+      <button onclick="openAddSalida('${e.id}')" style="background:none;border:none;color:var(--muted);font-size:0.9rem;padding:4px;cursor:pointer;flex-shrink:0">✏️</button>
+      <button onclick="deleteExpense('${e.id}','${currentKey()}')" style="background:none;border:none;color:var(--red);font-size:0.8rem;padding:4px;cursor:pointer;opacity:0.6;flex-shrink:0">✕</button>
+    </div>`).join('') +
+    `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0 2px;border-top:2px solid rgba(255,59,48,0.12);margin-top:4px">
+      <span style="font-size:0.75rem;font-weight:700;color:var(--red)">TOTAL SALIDAS</span>
+      <span style="font-size:1rem;font-weight:800;color:var(--red)">-${fmt(total)}</span>
+    </div>`;
+}
 
-  [0,0.5,1].forEach(f => {
-    const y = pad.t + ch*(1-f);
-    ctx.beginPath(); ctx.moveTo(pad.l,y); ctx.lineTo(W-pad.r,y);
-    ctx.strokeStyle='rgba(0,0,0,0.08)'; ctx.lineWidth=1; ctx.stroke();
-    ctx.fillStyle='#8a8a8f'; ctx.font='10px -apple-system,sans-serif'; ctx.textAlign='right';
-    ctx.fillText(fmt(max*f), pad.l-4, y+3);
-  });
+function openAddSalida(editId) {
+  document.getElementById('salida-edit-id').value = editId || '';
+  document.getElementById('salida-modal-nombre').value = '';
+  document.getElementById('salida-modal-monto').value = '';
+  document.getElementById('salida-modal-icon').value = '';
+  document.getElementById('modal-salida-title').textContent = '💸 Salida del ahorro';
+  document.getElementById('salida-modal-btn').textContent = 'Registrar salida';
+  if (editId) {
+    const md = getMonthData(currentKey());
+    const e = (md.expenses || []).find(x => x.id === editId);
+    if (e) {
+      document.getElementById('salida-modal-nombre').value = e.name || '';
+      document.getElementById('salida-modal-monto').value = e.amount || '';
+      document.getElementById('salida-modal-icon').value = e.icon && e.icon !== '💸' ? e.icon : '';
+      document.getElementById('modal-salida-title').textContent = '✏️ Editar salida';
+      document.getElementById('salida-modal-btn').textContent = 'Guardar cambios';
+    }
+  }
+  document.getElementById('modal-add-salida').classList.add('show');
+}
 
-  const pts = data.map((v,i) => ({
-    x: pad.l+(keys.length===1?cw/2:(i/(keys.length-1))*cw),
-    y: pad.t+ch*(1-v/max)
-  }));
+function guardarSalida() {
+  const key = currentKey();
+  const md = getMonthData(key);
+  const nombre = document.getElementById('salida-modal-nombre').value.trim();
+  const amount = parseFloat(document.getElementById('salida-modal-monto').value) || 0;
+  const icon = document.getElementById('salida-modal-icon').value.trim() || '💸';
+  const editId = document.getElementById('salida-edit-id').value;
+  if (!nombre) return alert('Escribe un nombre para la salida');
+  if (amount <= 0) return alert('Ingresa un monto válido');
+  if (!md.expenses) md.expenses = [];
+  if (editId) {
+    const e = md.expenses.find(x => x.id === editId);
+    if (e) { e.name = nombre; e.amount = amount; e.icon = icon; e.fuente = '__AHORRO__'; }
+  } else {
+    md.expenses.push({ id: uid(), name: nombre, icon, amount, type: 'fijo', fuente: '__AHORRO__' });
+  }
+  saveState();
+  closeModal('modal-add-salida');
+  renderAll();
+  showUpdatedBadge();
+  toast('💸 Salida registrada');
+}
 
-  const grad = ctx.createLinearGradient(0,pad.t,0,pad.t+ch);
-  grad.addColorStop(0,'rgba(52,199,89,0.2)');
-  grad.addColorStop(1,'rgba(52,199,89,0)');
-  ctx.beginPath();
-  pts.forEach((p,i)=>i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y));
-  ctx.lineTo(pts[pts.length-1].x,pad.t+ch);
-  ctx.lineTo(pts[0].x,pad.t+ch);
-  ctx.closePath();
-  ctx.fillStyle=grad; ctx.fill();
+function openAddDeposito() {
+  document.getElementById('deposito-edit-id').value = '';
+  document.getElementById('deposito-modal-monto').value = '';
+  document.getElementById('deposito-modal-nota').value = '';
+  document.getElementById('modal-deposito-title').textContent = '🐷 Agregar depósito';
+  document.getElementById('deposito-modal-btn').textContent = 'Agregar depósito';
+  document.getElementById('modal-add-deposito').classList.add('show');
+}
 
-  ctx.beginPath();
-  pts.forEach((p,i)=>i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y));
-  ctx.strokeStyle='#34c759'; ctx.lineWidth=2.5; ctx.lineJoin='round'; ctx.stroke();
+function editDeposito(idx, key) {
+  const depositos = getDepositos(key);
+  const d = depositos[idx];
+  if (!d) return;
+  document.getElementById('deposito-edit-id').value = String(idx);
+  document.getElementById('deposito-modal-monto').value = d.amount || '';
+  document.getElementById('deposito-modal-nota').value = d.nota || '';
+  document.getElementById('modal-deposito-title').textContent = '✏️ Editar depósito';
+  document.getElementById('deposito-modal-btn').textContent = 'Guardar cambios';
+  document.getElementById('modal-add-deposito').classList.add('show');
+}
 
-  pts.forEach((p,i)=>{
-    const [y,m] = keys[i].split('-').map(Number);
-    ctx.beginPath(); ctx.arc(p.x,p.y,5,0,Math.PI*2);
-    ctx.fillStyle='#34c759'; ctx.fill();
-    ctx.beginPath(); ctx.arc(p.x,p.y,3,0,Math.PI*2);
-    ctx.fillStyle='#fff'; ctx.fill();
-    ctx.fillStyle='#8a8a8f'; ctx.font='10px -apple-system,sans-serif'; ctx.textAlign='center';
-    ctx.fillText(MONTHS_ES[m-1].slice(0,3), p.x, H-6);
-    ctx.fillStyle='#34c759'; ctx.font='bold 10px -apple-system,sans-serif';
-    ctx.fillText(fmt(data[i]), p.x, p.y-10);
-  });
+function guardarDeposito() {
+  const key = currentKey();
+  const amount = parseFloat(document.getElementById('deposito-modal-monto').value) || 0;
+  const nota = document.getElementById('deposito-modal-nota').value.trim();
+  const editIdx = document.getElementById('deposito-edit-id').value;
+  if (amount <= 0) return alert('Ingresa un monto válido');
+
+  if (!state.months[key]) {
+    const prevTarjetas = getPrevMonthTarjetas(key);
+    state.months[key] = { nomina: 0, vales: 0, ingresos: [], expenses: [], tarjetas: JSON.parse(JSON.stringify(prevTarjetas)) };
+  }
+  const md = state.months[key];
+  if (!md.depositos) md.depositos = [];
+
+  const now = new Date();
+  const fechaStr = now.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' });
+
+  if (editIdx !== '') {
+    const i = parseInt(editIdx);
+    md.depositos[i].amount = amount;
+    md.depositos[i].nota = nota || undefined;
+  } else {
+    md.depositos.push({ id: uid(), amount, nota: nota || undefined, fecha: fechaStr });
+  }
+
+  // Sync ahorroReal to total of depositos (for cerrar mes compatibility)
+  md.ahorroReal = md.depositos.reduce((s, d) => s + (d.amount || 0), 0);
+  saveState();
+  closeModal('modal-add-deposito');
+  renderAll();
+  toast('🐷 Depósito guardado');
+}
+
+function deleteDeposito(idx, key) {
+  if (!confirm('¿Eliminar este depósito?')) return;
+  const md = state.months[key];
+  if (!md || !md.depositos) return;
+  md.depositos.splice(idx, 1);
+  md.ahorroReal = md.depositos.reduce((s, d) => s + (d.amount || 0), 0);
+  saveState();
+  renderAll();
+  showUpdatedBadge();
+  toast('🗑️ Depósito eliminado');
+}
+
+function renderAhorroDesgloseDetail() {
+  const sel = document.getElementById('ahorro-desglose-select');
+  const detail = document.getElementById('ahorro-desglose-detail');
+  if (!sel || !detail) return;
+  const key = sel.value;
+  if (!key) { detail.innerHTML = ''; return; }
+  const md = state.months[key];
+  if (!md) { detail.innerHTML = ''; return; }
+  const [y, m] = key.split('-').map(Number);
+
+  const ahorroBase = getTotalAhorradoMes(key);
+  const depositos = md.depositos || [];
+  const gastosDelAhorro = (md.expenses || []).filter(e => e.fuente === '__AHORRO__');
+  const totalGastado = gastosDelAhorro.reduce((s, e) => s + (e.amount || 0), 0);
+  const neto = ahorroBase - totalGastado;
+
+  // Depositos list
+  const depositosHtml = depositos.length > 0
+    ? `<div style="margin-bottom:10px">
+        <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--green);margin-bottom:6px">Depósitos</div>
+        ${depositos.map(d => `
+          <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(0,0,0,0.04)">
+            <span style="font-size:0.85rem;width:20px;text-align:center;flex-shrink:0">🐷</span>
+            <span style="flex:1;font-size:0.82rem;font-weight:500">${d.nota || 'Depósito'}</span>
+            ${d.fecha ? `<span style="font-size:0.65rem;color:var(--muted)">${d.fecha}</span>` : ''}
+            <span style="font-size:0.82rem;font-weight:700;color:var(--green);flex-shrink:0">+${fmt(d.amount)}</span>
+          </div>`).join('')}
+      </div>`
+    : (md.ahorroReal ? `<div style="padding:8px 0;font-size:0.82rem;color:var(--muted)">Ahorro registrado por cierre de mes: ${fmt(md.ahorroReal)}</div>` : '');
+
+  const gastosRows = gastosDelAhorro.length > 0
+    ? gastosDelAhorro.map(e => `
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid rgba(0,0,0,0.04)">
+        <span style="font-size:0.9rem;width:22px;text-align:center;flex-shrink:0">${e.icon||'💸'}</span>
+        <span style="flex:1;font-size:0.82rem;font-weight:500">${e.name}</span>
+        <span style="font-size:0.82rem;font-weight:700;color:var(--red);flex-shrink:0">-${fmt(e.amount)}</span>
+        <button onclick="openEditGasto('${e.id}','${key}')" style="background:none;border:none;color:var(--muted);cursor:pointer;padding:2px;font-size:0.85rem;flex-shrink:0">✏️</button>
+        <button onclick="deleteExpense('${e.id}','${key}')" style="background:none;border:none;color:var(--red);cursor:pointer;padding:2px;font-size:0.75rem;opacity:0.6;flex-shrink:0">✕</button>
+      </div>`).join('')
+    : `<p class="small-muted" style="text-align:center;padding:8px 0;font-size:0.75rem">Sin salidas del ahorro este mes</p>`;
+
+  detail.innerHTML = `
+    <div style="background:rgba(52,199,89,0.06);border:1px solid rgba(52,199,89,0.2);border-radius:14px;padding:14px;margin-bottom:12px">
+      <div style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--green);margin-bottom:10px">
+        ${MONTHS_ES[m - 1]} ${y}
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;margin-bottom:${depositosHtml?'10px':'0'}">
+        <div>
+          <div style="font-size:0.95rem;font-weight:800;color:var(--green)">${fmt(ahorroBase)}</div>
+          <div style="font-size:0.58rem;color:var(--muted);margin-top:2px;text-transform:uppercase">Guardado</div>
+        </div>
+        <div>
+          <div style="font-size:0.95rem;font-weight:800;color:var(--red)">${fmt(totalGastado)}</div>
+          <div style="font-size:0.58rem;color:var(--muted);margin-top:2px;text-transform:uppercase">Gastado</div>
+        </div>
+        <div>
+          <div style="font-size:0.95rem;font-weight:800;color:${neto>=0?'var(--green)':'var(--red)'}">${fmt(neto)}</div>
+          <div style="font-size:0.58rem;color:var(--muted);margin-top:2px;text-transform:uppercase">Neto</div>
+        </div>
+      </div>
+      ${depositosHtml}
+    </div>
+
+    <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);margin-bottom:8px">Salidas del ahorro este mes</div>
+    ${gastosRows}
+  `;
+}
+
+function eliminarAhorroMes(key) {
+  const [y, m] = key.split('-').map(Number);
+  if (!confirm(`¿Eliminar el ahorro de ${MONTHS_ES[m-1]} ${y}?\n\nEsto borrará los depósitos y el monto guardado.`)) return;
+  const md = state.months[key];
+  if (!md) return;
+  delete md.ahorroReal;
+  delete md.notaAhorro;
+  md.depositos = [];
+  saveState();
+  renderAll();
+  const sel = document.getElementById('ahorro-desglose-select');
+  if (sel) { sel.value = ''; renderAhorroDesgloseDetail(); }
+  toast('🗑️ Ahorro eliminado');
+}
+
+function openAddAhorro() {
+  const sel = document.getElementById('ahorro-modal-mes');
+  const allKeys = Object.keys(state.months).sort().reverse();
+  const nowKey = currentKey();
+  const options = [...new Set([nowKey, ...allKeys])].sort().reverse();
+  sel.innerHTML = options.map(k => {
+    const [y,m] = k.split('-').map(Number);
+    const md = state.months[k];
+    const yaAhorro = getTotalAhorradoMes(k) > 0;
+    return `<option value="${k}">${MONTHS_ES[m-1]} ${y}${yaAhorro?' ✅':''}${k===nowKey?' (actual)':''}</option>`;
+  }).join('');
+  sel.value = nowKey;
+
+  const curMd = state.months[nowKey];
+  const montoInput = document.getElementById('ahorro-modal-monto');
+  const notaInput = document.getElementById('ahorro-modal-nota');
+  const total = getTotalAhorradoMes(nowKey);
+  if (total > 0) {
+    montoInput.dataset.raw = total;
+    montoInput.value = '$' + Number(total).toLocaleString('es-MX');
+    notaInput.value = curMd && curMd.notaAhorro || '';
+  } else {
+    montoInput.dataset.raw = '';
+    montoInput.value = '';
+    notaInput.value = '';
+  }
+
+  sel.onchange = () => {
+    const k = sel.value;
+    const t2 = getTotalAhorradoMes(k);
+    const md2 = state.months[k];
+    if (t2 > 0) {
+      montoInput.dataset.raw = t2;
+      montoInput.value = '$' + Number(t2).toLocaleString('es-MX');
+      notaInput.value = md2 && md2.notaAhorro || '';
+    } else {
+      montoInput.dataset.raw = '';
+      montoInput.value = '';
+      notaInput.value = '';
+    }
+  };
+
+  document.getElementById('modal-add-ahorro').classList.add('show');
+}
+
+function guardarAhorroModal() {
+  const key = document.getElementById('ahorro-modal-mes').value;
+  const montoInput = document.getElementById('ahorro-modal-monto');
+  const nota = document.getElementById('ahorro-modal-nota').value.trim();
+  const raw = montoInput.dataset.raw || montoInput.value.replace(/[^0-9.]/g,'');
+  const monto = parseFloat(raw) || 0;
+
+  if (!key) return alert('Selecciona un mes');
+  if (monto < 0) return alert('El monto no puede ser negativo');
+
+  if (!state.months[key]) {
+    const prevTarjetas = getPrevMonthTarjetas(key);
+    state.months[key] = {
+      nomina: 0, vales: 0, ingresos: [],
+      expenses: [], tarjetas: JSON.parse(JSON.stringify(prevTarjetas))
+    };
+  }
+  const md = state.months[key];
+  md.ahorroReal = monto;
+  md.notaAhorro = nota || undefined;
+  // Si no tiene depósitos, crear uno con este total para compatibilidad
+  if (!md.depositos || md.depositos.length === 0) {
+    md.depositos = [{ id: uid(), amount: monto, nota: nota || 'Ahorro del mes' }];
+  }
+  saveState();
+  closeModal('modal-add-ahorro');
+  renderAll();
+  toast('🐷 Ahorro guardado');
+}
+
+function editarAhorroMes(key) {
+  const sel = document.getElementById('ahorro-modal-mes');
+  openAddAhorro();
+  setTimeout(() => {
+    sel.value = key;
+    sel.onchange();
+  }, 50);
 }
 
 // ════════════════════════════════════════════
@@ -2182,7 +2640,7 @@ document.addEventListener('touchend', e => {
 //  SWIPE HORIZONTAL ENTRE PESTAÑAS
 // ════════════════════════════════════════════
 (function() {
-  const PAGES = ['home', 'gastos', 'deuda', 'historial'];
+  const PAGES = ['home', 'gastos', 'deuda', 'ahorro', 'historial'];
   let touchStartX = 0, touchStartY = 0, touchStartTime = 0;
   let currentPageId = 'home';
 
