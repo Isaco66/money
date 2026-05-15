@@ -834,7 +834,11 @@ function calcAndRender(md, key) {
   const totalTarjetaCortes = tarjetas.reduce((s,t) => s+(t.cargo||0), 0);
   const totalGastos = nominaExp.reduce((s,e) => s+(e.amount||0), 0) + totalTarjetaCortes;
   const totalValesGasto = valesExp.reduce((s,e) => s+(e.amount||0), 0);
-  const libre = nomina - totalGastos;
+  // Use totalIngresos (all ingresos minus vales) for libre calculation
+  const ingresosNoVales = ingresos.filter(i => !i.name.toLowerCase().includes('vale'));
+  const totalIngresosNoVales = ingresosNoVales.reduce((s,i)=>s+(i.amount||0),0);
+  const baseParaLibre = totalIngresosNoVales > 0 ? totalIngresosNoVales : nomina;
+  const libre = baseParaLibre - totalGastos;
   const valesLibre = vales - totalValesGasto;
 
   // Legacy hidden spans for other functions
@@ -1198,7 +1202,8 @@ function renderGastos(md, key) {
 
     const mkBar = (row, grandTotal) => {
       const { label, amount, color, items, tarjetaItems } = row;
-      const pct = grandTotal > 0 ? Math.min((amount/grandTotal)*100,100) : 0;
+      const pct = grandTotal > 0 ? (amount/grandTotal)*100 : 0;
+      const barWidth = Math.min(pct, 100);
       const allItems = [...(items||[]), ...(tarjetaItems||[])];
       const itemsHtml = allItems.length > 0 ? `
         <div style="margin-top:8px;padding-top:6px;border-top:1px solid rgba(0,0,0,0.05)">
@@ -1219,8 +1224,8 @@ function renderGastos(md, key) {
           <span style="font-size:0.8rem;font-weight:600">${label}</span>
           <span style="font-size:0.8rem;font-weight:700;color:${color}">${fmt(amount)}</span>
         </div>
-        <div class="bar-track-s" style="height:8px"><div class="bar-fill-s" style="width:${pct}%;background:${color}"></div></div>
-        <div style="font-size:0.62rem;color:var(--muted);margin-top:2px">${pct.toFixed(1)}% del total</div>
+        <div class="bar-track-s" style="height:8px"><div class="bar-fill-s" style="width:${barWidth}%;background:${color}"></div></div>
+        <div style="font-size:0.62rem;color:${pct>100?'var(--red)':'var(--muted)'};margin-top:2px">${pct.toFixed(1)}% del total${pct>100?' ⚠️':''}</div>
         ${itemsHtml}
       </div>`;
     };
