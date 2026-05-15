@@ -736,7 +736,7 @@ function getMonthData(key) {
     const prevIds = new Set(prevTarjetas.map(p => p.id));
     const storedTarjetas = md.tarjetas || [];
 
-    // Carried over from prev month
+    // Carried over from prev month — prev.saldo already = saldo restante from last month
     const carried = prevTarjetas
       .filter(prev => !removed.has(prev.id))
       .map(prev => {
@@ -744,10 +744,10 @@ function getMonthData(key) {
       if (existing) {
         const base = existing.saldoOverride !== undefined ? existing.saldoOverride : prev.saldo;
         const itemsTotal = (existing.cargoItems || []).reduce((s, ci) => s + (ci.amount || 0), 0);
-        return { ...existing, saldoBase: base, saldo: base + itemsTotal };
+        return { ...existing, saldoBase: base, saldo: base + itemsTotal, cargo: existing.cargo || 0 };
       }
-      return prev;
-    });
+      return { ...prev, cargo: 0, cargoItems: [] };
+    }).filter(t => (t.saldoOverride !== undefined ? t.saldoOverride : t.saldo) > 0);
 
     // New tarjetas created this month (not in any previous month)
     const brandNew = storedTarjetas.filter(t => !prevIds.has(t.id) && !removed.has(t.id));
@@ -813,11 +813,16 @@ function getEffectiveTarjetas(key, depth) {
       .filter(prev => !removed.has(prev.id))
       .map(prev => {
       const storedT = stored.find(t => t.id === prev.id) || {};
+      // prev.saldo = saldo after previous month's payment (already net)
       const base = storedT.saldoOverride !== undefined
         ? storedT.saldoOverride
-        : Math.max(0, (prev.saldo || 0) - (prev.cargo || 0));
+        : (prev.saldo || 0);
       const itemsTotal = (storedT.cargoItems || []).reduce((s, ci) => s + (ci.amount || 0), 0);
-      return { ...prev, ...storedT, saldoBase: base, saldo: base + itemsTotal, cargo: storedT.cargo || 0 };
+      const cargoThisMonth = storedT.cargo || 0;
+      const effectiveSaldo = base + itemsTotal;
+      // Return saldo = net after this month's payment, so next month's chain gets the right value
+      const saldoNet = Math.max(0, effectiveSaldo - cargoThisMonth);
+      return { ...prev, ...storedT, saldoBase: base, saldo: saldoNet, cargo: cargoThisMonth };
     }).filter(t => t.saldo > 0); // stop carrying once paid off
 
     // Brand-new tarjetas created in this month
