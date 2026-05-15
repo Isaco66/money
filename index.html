@@ -701,6 +701,9 @@ function saveState() {
         fechaCorte: t.fechaCorte || '',
         ...(t.saldoOverride !== undefined ? { saldoOverride: t.saldoOverride } : {})
       }));
+      if (md._removedTarjetas && md._removedTarjetas.length > 0) {
+        toSave.months[k]._removedTarjetas = md._removedTarjetas;
+      }
     });
     localStorage.setItem('finanzas-v3', JSON.stringify(toSave));
   } catch(e) {}
@@ -724,6 +727,8 @@ function getMonthData(key) {
   const md = state.months[key];
   const prevTarjetas = getPrevMonthTarjetas(key);
 
+  const removed = new Set(md._removedTarjetas || []);
+
   // Merge tarjetas:
   // 1. Tarjetas que vienen arrastradas del mes anterior → saldo live calculado
   // 2. Tarjetas nuevas creadas en este mes (no existen en meses previos) → saldo propio
@@ -732,7 +737,9 @@ function getMonthData(key) {
     const storedTarjetas = md.tarjetas || [];
 
     // Carried over from prev month
-    const carried = prevTarjetas.map(prev => {
+    const carried = prevTarjetas
+      .filter(prev => !removed.has(prev.id))
+      .map(prev => {
       const existing = storedTarjetas.find(t => t.id === prev.id);
       if (existing) {
         const base = existing.saldoOverride !== undefined ? existing.saldoOverride : prev.saldo;
@@ -743,7 +750,7 @@ function getMonthData(key) {
     });
 
     // New tarjetas created this month (not in any previous month)
-    const brandNew = storedTarjetas.filter(t => !prevIds.has(t.id));
+    const brandNew = storedTarjetas.filter(t => !prevIds.has(t.id) && !removed.has(t.id));
 
     md.tarjetas = [...carried, ...brandNew];
   } else {
@@ -799,9 +806,12 @@ function getEffectiveTarjetas(key, depth) {
   }
 
   if (prevEffective.length > 0) {
+    const removed = new Set((md._removedTarjetas || []));
     const prevIds = new Set(prevEffective.map(p => p.id));
 
-    const carried = prevEffective.map(prev => {
+    const carried = prevEffective
+      .filter(prev => !removed.has(prev.id))
+      .map(prev => {
       const storedT = stored.find(t => t.id === prev.id) || {};
       const base = storedT.saldoOverride !== undefined
         ? storedT.saldoOverride
@@ -811,7 +821,7 @@ function getEffectiveTarjetas(key, depth) {
     });
 
     // Brand-new tarjetas created in this month
-    const brandNew = stored.filter(t => !prevIds.has(t.id)).map(t => {
+    const brandNew = stored.filter(t => !prevIds.has(t.id) && !removed.has(t.id)).map(t => {
       const base = t.saldoOverride !== undefined ? t.saldoOverride : (t.saldo || 0);
       const itemsTotal = (t.cargoItems || []).reduce((s, ci) => s + (ci.amount || 0), 0);
       return { ...t, saldoBase: base, saldo: base + itemsTotal };
@@ -2111,9 +2121,11 @@ function addTarjeta() {
   renderAll();
 }
 function removeTarjeta(id) {
-  if (!confirm('¿Quitar esta tarjeta?')) return;
   const key = currentKey();
   const md = getMonthData(key);
+  // Always allow deletion — store as explicit removal for this month
+  if (!md._removedTarjetas) md._removedTarjetas = [];
+  if (!md._removedTarjetas.includes(id)) md._removedTarjetas.push(id);
   md.tarjetas = md.tarjetas.filter(t => t.id !== id);
   saveState();
   renderAll();
