@@ -784,7 +784,7 @@ function getPrevMonthTarjetas(key) {
           cargo: 0,
           cargoItems: []
         };
-      });
+      }).filter(t => t.saldo > 0); // don't carry paid-off debts
     }
   }
   return [];
@@ -818,7 +818,7 @@ function getEffectiveTarjetas(key, depth) {
         : Math.max(0, (prev.saldo || 0) - (prev.cargo || 0));
       const itemsTotal = (storedT.cargoItems || []).reduce((s, ci) => s + (ci.amount || 0), 0);
       return { ...prev, ...storedT, saldoBase: base, saldo: base + itemsTotal, cargo: storedT.cargo || 0 };
-    });
+    }).filter(t => t.saldo > 0); // stop carrying once paid off
 
     // Brand-new tarjetas created in this month
     const brandNew = stored.filter(t => !prevIds.has(t.id) && !removed.has(t.id)).map(t => {
@@ -1830,6 +1830,7 @@ function renderDeuda(md) {
                 value="${fmtNum(t.saldo)}" placeholder="0"
                 onfocus="focusTarjetaInput(this)"
                 onblur="blurTarjetaInput(this,'${t.id}','saldo');recalcSaldoRestante('${t.id}')"
+                oninput="autoSizeTarjetaInput(this)"
                 data-raw="${t.saldoBase||t.saldo||0}"/>
             </div>
             ${itemsTotal > 0 ? `<div style="font-size:0.5rem;color:var(--muted);margin-top:2px">${fmt(t.saldoBase||0)}+cargos</div>` : ''}
@@ -1846,7 +1847,7 @@ function renderDeuda(md) {
                 onfocus="focusTarjetaInput(this)"
                 onblur="blurTarjetaInput(this,'${t.id}','cargo');recalcSaldoRestante('${t.id}')"
                 data-raw="${t.cargo||0}"
-                oninput="liveRecalcSaldoRestante('${t.id}',this.value)"/>
+                oninput="liveRecalcSaldoRestante('${t.id}',this.value);autoSizeTarjetaInput(this)"/>
             </div>
           </div>
 
@@ -2078,16 +2079,26 @@ function saveCargoItems() {
 }
 
 // ── Tarjeta helpers ──
+function autoSizeTarjetaInput(el) {
+  const len = (el.value || '').replace(/[,.$]/g,'').length || 1;
+  if (len <= 5)       el.style.fontSize = '1rem';
+  else if (len <= 7)  el.style.fontSize = '0.82rem';
+  else if (len <= 9)  el.style.fontSize = '0.68rem';
+  else                el.style.fontSize = '0.56rem';
+}
+
 function focusTarjetaInput(el) {
   const raw = el.dataset.raw || '0';
   el.value = raw === '0' ? '' : raw;
   el.type = 'number';
+  autoSizeTarjetaInput(el);
 }
 function blurTarjetaInput(el, id, field) {
   el.type = 'text';
   const val = parseFloat(el.value) || 0;
   el.dataset.raw = val;
   el.value = fmtNum(val);
+  autoSizeTarjetaInput(el);
   if (field === 'saldo') {
     // User is manually overriding the saldo for this month
     const md = getMonthData(currentKey());
