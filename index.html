@@ -308,17 +308,27 @@ canvas{opacity:0.92;}
   <div class="block fadein" id="bloque-cerrar-mes">
     <div class="block-title">
       <span class="title-with-icon"><span class="ui-svg-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M8 12l2.5 2.5L16 9"/></svg></span>Cerrar mes</span>
-      <span id="mes-cerrado-badge" style="display:none;font-size:0.65rem;background:rgba(52,199,89,0.15);color:var(--green);padding:3px 8px;border-radius:99px;font-weight:700">CERRADO</span>
+      <span id="mes-cerrado-badge" style="display:none;font-size:0.65rem;background:rgba(52,199,89,0.15);color:var(--green);padding:3px 8px;border-radius:99px;font-weight:700">✓ CERRADO</span>
     </div>
     <p class="small-muted" style="margin-bottom:12px;line-height:1.5">¿Cuánto ahorraste en realidad este mes?</p>
-    <div class="input-row">
-      <input class="inp" id="ahorro-real-input" type="number" placeholder="$ Ahorro real del mes" inputmode="decimal"/>
-      <button class="btn" onclick="cerrarMes()">Guardar</button>
+    <div style="display:flex;align-items:stretch;gap:10px">
+      <div style="flex:1;min-width:0;display:flex;align-items:center;background:rgba(52,199,89,0.07);border:1.5px solid rgba(52,199,89,0.25);border-radius:14px;padding:0 14px;gap:6px">
+        <span style="font-size:1rem;font-weight:700;color:var(--green);flex-shrink:0">$</span>
+        <input id="ahorro-real-input" type="text" inputmode="decimal"
+          style="flex:1;min-width:0;background:none;border:none;outline:none;font-size:1.05rem;font-weight:700;color:var(--green);padding:12px 0;"
+          placeholder="0"
+          onfocus="focusAhorroInput(this)"
+          onblur="blurAhorroInput(this)"/>
+      </div>
+      <button class="btn" onclick="cerrarMes()" style="background:var(--green);border-radius:14px;padding:12px 18px;font-size:0.9rem;flex-shrink:0">Guardar</button>
     </div>
     <div id="ahorro-real-display" style="display:none;margin-top:8px">
-      <div class="flex-between">
-        <span class="small-muted">Ahorro registrado</span>
-        <span id="ahorro-real-val" class="mono text-green" style="font-weight:700;font-size:1rem"></span>
+      <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(52,199,89,0.07);border:1.5px solid rgba(52,199,89,0.2);border-radius:14px;padding:14px 16px">
+        <div>
+          <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--green);margin-bottom:3px">Ahorro registrado</div>
+          <span id="ahorro-real-val" style="font-weight:800;font-size:1.3rem;color:var(--green);letter-spacing:-0.02em"></span>
+        </div>
+        <span style="font-size:1.8rem">🐷</span>
       </div>
       <button class="btn-red" style="width:100%;margin-top:10px;font-size:0.75rem" onclick="editarAhorro()">Editar ahorro</button>
     </div>
@@ -890,91 +900,80 @@ function calcAndRender(md, key) {
   // Desglose completo
   const desgloseEl = document.getElementById('home-desglose');
   if (desgloseEl) {
-    const mkRow = (icon, name, amount, color, extraHtml='') =>
-      `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid rgba(0,0,0,0.05)">
-        <span style="font-size:0.82rem">${icon} ${name}${extraHtml}</span>
-        <span style="font-size:0.8rem;font-weight:600;color:${color||'var(--text)'};">${fmt(amount)}</span>
+    const mkExpRow = (icon, name, amount, color, extraHtml='') =>
+      `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0 6px 8px;border-bottom:1px solid rgba(0,0,0,0.04)">
+        <span style="font-size:0.82rem;display:flex;align-items:center;gap:5px">${icon} ${name}${extraHtml}</span>
+        <span style="font-size:0.8rem;font-weight:600;color:${color};flex-shrink:0">${fmt(amount)}</span>
       </div>`;
-    const mkHead = label =>
-      `<div style="font-size:0.58rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);padding:10px 0 3px;font-weight:700">${label}</div>`;
+
+    const mkLibreRow = (libreVal) => {
+      const color = libreVal >= 0 ? 'var(--green)' : 'var(--red)';
+      const label = libreVal >= 0 ? 'Libre' : 'Déficit';
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 8px;margin-top:4px;background:${libreVal>=0?'rgba(52,199,89,0.07)':'rgba(255,59,48,0.07)'};border-radius:8px">
+        <span style="font-size:0.75rem;font-weight:700;color:${color}">${label}</span>
+        <span style="font-size:0.85rem;font-weight:800;color:${color}">${fmt(libreVal)}</span>
+      </div>`;
+    };
 
     let html = '';
 
-    if (ingresos.length) {
-      html += mkHead('Ingresos');
-      ingresos.forEach(ing => { html += mkRow('💰', ing.name, ing.amount, 'var(--green)'); });
-    }
-
     if (ingresos.length === 0) {
-      // fallback legacy: group by type
-      const fijoList = md.expenses.filter(e=>e.type==='fijo');
-      const varList = md.expenses.filter(e=>e.type==='variable');
-      const valesList = md.expenses.filter(e=>e.type==='vales');
-      if (fijoList.length) {
-        html += mkHead('Gastos fijos');
-        fijoList.forEach(e => { html += mkRow(e.icon||'💰', e.name, e.amount, 'var(--red)'); });
-      }
-      const hasVariables = varList.length > 0 || tarjetas.some(t=>(t.cargo||0)>0);
-      if (hasVariables) {
-        html += mkHead('Gastos variables');
-        varList.forEach(e => { html += mkRow(e.icon||'💰', e.name, e.amount, 'var(--yellow)'); });
+      // Sin ingresos: fallback simple
+      const allExp = md.expenses.filter(e => e.amount > 0);
+      if (allExp.length > 0) {
+        allExp.forEach(e => { html += mkExpRow(e.icon||'💰', e.name, e.amount, 'var(--red)'); });
         tarjetas.filter(t=>(t.cargo||0)>0).forEach(t => {
-          html += mkRow('💳', t.name, t.cargo, 'var(--blue)', ' <span style="font-size:0.6rem;background:rgba(0,122,255,0.1);color:var(--blue);padding:1px 5px;border-radius:99px">tarjeta</span>');
+          html += mkExpRow('💳', t.name, t.cargo, 'var(--blue)', ' <span style="font-size:0.55rem;background:rgba(0,122,255,0.1);color:var(--blue);padding:1px 5px;border-radius:99px">tarjeta</span>');
         });
       }
-      if (valesList.length) {
-        html += mkHead('Con vales despensa');
-        valesList.forEach(e => { html += mkRow(e.icon||'💰', e.name, e.amount, 'var(--purple)'); });
-      }
-    } else {
-      // Group expenses by ingreso
-      ingresos.forEach(ing => {
-        const gastos = md.expenses.filter(e => e.fuente === ing.id);
-        // Tarjetas go under the first non-vales ingreso (or last ingreso if all are vales)
-        const isValesIng = ing.name.toLowerCase().includes('vale');
-        const tarjetasForThis = !isValesIng && ing === ingresos.filter(i=>!i.name.toLowerCase().includes('vale')).slice(-1)[0]
-          ? tarjetas.filter(t=>(t.cargo||0)>0)
-          : [];
-        if (gastos.length > 0 || tarjetasForThis.length > 0) {
-          html += mkHead(ing.name);
-          gastos.forEach(e => { html += mkRow(e.icon||'💰', e.name, e.amount, 'var(--red)'); });
-          tarjetasForThis.forEach(t => {
-            html += mkRow('💳', t.name, t.cargo, 'var(--blue)', ' <span style="font-size:0.6rem;background:rgba(0,122,255,0.1);color:var(--blue);padding:1px 5px;border-radius:99px">tarjeta</span>');
-          });
-        }
-      });
-      // Gastos sin fuente
-      const sinFuente = md.expenses.filter(e => !e.fuente || !ingresos.find(i=>i.id===e.fuente));
-      if (sinFuente.length > 0) {
-        html += mkHead('Sin ingreso asignado');
-        sinFuente.forEach(e => { html += mkRow(e.icon||'💰', e.name, e.amount, 'var(--muted)'); });
-      }
-      // Tarjetas sin ingreso asignado (si no se mostraron arriba)
-      const ingresosNoVales = ingresos.filter(i=>!i.name.toLowerCase().includes('vale'));
-      if (ingresosNoVales.length === 0 && tarjetas.some(t=>(t.cargo||0)>0)) {
-        html += mkHead('Variables');
-        tarjetas.filter(t=>(t.cargo||0)>0).forEach(t => {
-          html += mkRow('💳', t.name, t.cargo, 'var(--blue)', ' <span style="font-size:0.6rem;background:rgba(0,122,255,0.1);color:var(--blue);padding:1px 5px;border-radius:99px">tarjeta</span>');
-        });
-      }
-    }
-
-    const valesList2 = md.expenses.filter(e=>e.type==='vales');
-    const valesLibre2 = vales - valesList2.reduce((s,e)=>s+(e.amount||0),0);
-    html += `<div style="margin-top:10px;border-top:2px solid rgba(0,0,0,0.06);padding-top:10px">
-      <div style="display:flex;justify-content:space-between;padding:4px 0">
+      html += `<div style="margin-top:10px;border-top:2px solid rgba(0,0,0,0.06);padding-top:10px;display:flex;justify-content:space-between">
         <span style="font-size:0.8rem;font-weight:700">Total gastos</span>
         <span style="font-weight:800;color:var(--red)">${fmt(totalGastos)}</span>
-      </div>
-      <div style="display:flex;justify-content:space-between;padding:4px 0">
-        <span style="font-size:0.8rem;font-weight:700">Dinero libre</span>
-        <span style="font-weight:800;color:${libre>=0?'var(--green)':'var(--red)'}">${fmt(libre)}</span>
-      </div>
-      ${vales>0?`<div style="display:flex;justify-content:space-between;padding:4px 0">
-        <span style="font-size:0.8rem;font-weight:700">Vales libres</span>
-        <span style="font-weight:800;color:${valesLibre2>=0?'var(--green)':'var(--red)'}">${fmt(valesLibre2)}</span>
-      </div>`:''}
-    </div>`;
+      </div>`;
+    } else {
+      // Con ingresos: una sección por ingreso con sus gastos y su propio libre
+      // Tarjetas se asignan al primer ingreso no-vales
+      const primerNoVales = ingresos.find(i => !i.name.toLowerCase().includes('vale'));
+
+      ingresos.forEach(ing => {
+        const gastos = md.expenses.filter(e => e.fuente === ing.id);
+        const esTarjetasIng = ing === primerNoVales;
+        const tarjetasAqui = esTarjetasIng ? tarjetas.filter(t=>(t.cargo||0)>0) : [];
+        const totalGastosIng = gastos.reduce((s,e)=>s+(e.amount||0),0)
+          + tarjetasAqui.reduce((s,t)=>s+(t.cargo||0),0);
+        const libreIng = (ing.amount||0) - totalGastosIng;
+
+        // Cabecera del ingreso
+        html += `<div style="margin-bottom:12px;padding-bottom:4px">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0 4px">
+            <span style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted)">💰 ${ing.name}</span>
+            <span style="font-size:0.75rem;font-weight:700;color:var(--green)">${fmt(ing.amount)}</span>
+          </div>`;
+
+        if (gastos.length > 0 || tarjetasAqui.length > 0) {
+          gastos.forEach(e => { html += mkExpRow(e.icon||'💰', e.name, e.amount, 'var(--red)'); });
+          tarjetasAqui.forEach(t => {
+            html += mkExpRow('💳', t.name, t.cargo, 'var(--blue)', ' <span style="font-size:0.55rem;background:rgba(0,122,255,0.1);color:var(--blue);padding:1px 5px;border-radius:99px">tarjeta</span>');
+          });
+          html += mkLibreRow(libreIng);
+        } else {
+          html += `<div style="padding:6px 8px;font-size:0.75rem;color:var(--muted);font-style:italic">Sin gastos asignados</div>`;
+          html += mkLibreRow(ing.amount||0);
+        }
+
+        html += `</div><div style="border-top:1px solid rgba(0,0,0,0.06);margin-bottom:12px"></div>`;
+      });
+
+      // Gastos sin ingreso asignado
+      const sinFuente = md.expenses.filter(e => !e.fuente || !ingresos.find(i=>i.id===e.fuente));
+      if (sinFuente.length > 0) {
+        html += `<div style="margin-bottom:12px">
+          <div style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);padding:4px 0 8px">❓ Sin ingreso asignado</div>`;
+        sinFuente.forEach(e => { html += mkExpRow(e.icon||'💰', e.name, e.amount, 'var(--muted)'); });
+        html += `</div>`;
+      }
+    }
+
     desgloseEl.innerHTML = html;
   }
 }
@@ -1789,7 +1788,8 @@ function removeTarjeta(id) {
 //  CERRAR MES
 // ════════════════════════════════════════════
 function cerrarMes() {
-  const val = parseFloat(document.getElementById('ahorro-real-input').value);
+  const input = document.getElementById('ahorro-real-input');
+  const val = parseFloat(input.dataset.raw) || parseFloat(input.value) || 0;
   if (isNaN(val) || val < 0) return alert('Ingresa un monto válido');
   const key = currentKey();
   const md = getMonthData(key);
@@ -1859,8 +1859,41 @@ function renderCerrarMes(md) {
     badge.style.display = 'none';
     input.parentElement.style.display = 'flex';
     display.style.display = 'none';
-    input.value = md.ahorroReal || '';
+    // Pre-fill con libre de Nómina (primer ingreso no-vales)
+    if (md.ingresos && md.ingresos.length > 0) {
+      const primerNoVales = md.ingresos.find(i => !i.name.toLowerCase().includes('vale'));
+      if (primerNoVales) {
+        const tarjetas = md.tarjetas || [];
+        const gastosDeLa = md.expenses.filter(e => e.fuente === primerNoVales.id);
+        const totalGastosNomina = gastosDeLa.reduce((s,e)=>s+(e.amount||0),0)
+          + tarjetas.reduce((s,t)=>s+(t.cargo||0),0);
+        const libreNomina = (primerNoVales.amount||0) - totalGastosNomina;
+        const val = libreNomina > 0 ? libreNomina : (md.ahorroReal || 0);
+        input.dataset.raw = val;
+        input.value = val > 0 ? fmtNum(val) : '';
+      } else {
+        const val = md.ahorroReal || 0;
+        input.dataset.raw = val;
+        input.value = val > 0 ? fmtNum(val) : '';
+      }
+    } else {
+      const val = md.ahorroReal || 0;
+      input.dataset.raw = val;
+      input.value = val > 0 ? fmtNum(val) : '';
+    }
   }
+}
+
+function focusAhorroInput(el) {
+  const raw = parseFloat(el.dataset.raw) || 0;
+  el.value = raw > 0 ? raw : '';
+  el.type = 'number';
+}
+function blurAhorroInput(el) {
+  el.type = 'text';
+  const val = parseFloat(el.value) || 0;
+  el.dataset.raw = val;
+  el.value = val > 0 ? fmtNum(val) : '';
 }
 
 // ════════════════════════════════════════════
