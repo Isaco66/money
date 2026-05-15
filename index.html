@@ -235,32 +235,19 @@ canvas{opacity:0.92;}
   <button class="nav-btn" onclick="showPage('ahorro')" id="nav-ahorro">
     <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 6c0 3.87-3.13 7-7 7s-7-3.13-7-7"/><path d="M5 6V4"/><path d="M19 6V4"/><path d="M12 13v8"/><path d="M9 18h6"/></svg></span>Ahorro
   </button>
+  <button class="nav-btn" onclick="showPage('ajustes')" id="nav-ajustes">
+    <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>Ajustes
+  </button>
 
 </nav>
 
 <!-- ═══════════════════ HOME ═══════════════════ -->
 <div class="page active" id="page-home">
-  <div class="page-header fadein" style="display:flex;justify-content:space-between;align-items:flex-start">
+  <div class="page-header fadein">
     <div>
       <h2>Hola, Josue 👋</h2>
       <p id="home-date">cargando...</p>
     </div>
-    <button onclick="toggleMenuHome()" id="menu-home-btn" style="background:rgba(0,0,0,0.05);border:none;border-radius:12px;padding:8px 10px;cursor:pointer;font-size:1.1rem;margin-top:4px">☰</button>
-  </div>
-
-  <!-- Menú desplegable -->
-  <div id="menu-home" style="display:none;background:#fff;border:1px solid rgba(0,0,0,0.08);border-radius:16px;padding:8px;margin-bottom:14px;box-shadow:0 8px 24px rgba(0,0,0,0.1)">
-    <button onclick="exportarDatos();toggleMenuHome()" style="width:100%;background:none;border:none;text-align:left;padding:12px 14px;font-size:0.88rem;font-weight:600;color:var(--text);border-radius:10px;cursor:pointer;display:flex;align-items:center;gap:10px">
-      📤 <span>Exportar datos</span>
-    </button>
-    <div style="height:1px;background:rgba(0,0,0,0.05);margin:2px 8px"></div>
-    <button onclick="document.getElementById('import-file-input').click();toggleMenuHome()" style="width:100%;background:none;border:none;text-align:left;padding:12px 14px;font-size:0.88rem;font-weight:600;color:var(--text);border-radius:10px;cursor:pointer;display:flex;align-items:center;gap:10px">
-      📥 <span>Importar datos</span>
-    </button>
-    <div style="height:1px;background:rgba(0,0,0,0.05);margin:2px 8px"></div>
-    <button onclick="resetearDatos()" style="width:100%;background:none;border:none;text-align:left;padding:12px 14px;font-size:0.88rem;font-weight:600;color:var(--red);border-radius:10px;cursor:pointer;display:flex;align-items:center;gap:10px">
-      🗑️ <span>Borrar todos los datos</span>
-    </button>
   </div>
 
   <div class="month-bar fadein">
@@ -348,8 +335,7 @@ canvas{opacity:0.92;}
     <button class="month-nav" onclick="changeMonth(1)">›</button>
   </div>
 
-  <!-- Corte alerts banner -->
-  <div id="corte-alerts-banner" style="display:none;margin-bottom:12px"></div>
+  <!-- Corte alerts banner removed -->
 
   <!-- KPI deuda total -->
   <div class="fadein" style="background:rgba(255,255,255,0.9);border:1px solid rgba(0,0,0,0.06);border-radius:18px;padding:18px 18px 16px;margin-bottom:14px;box-shadow:0 2px 12px rgba(0,0,0,0.05)">
@@ -511,6 +497,77 @@ canvas{opacity:0.92;}
   </div>
 </div>
 
+<!-- ═══════════════════ AJUSTES ═══════════════════ -->
+<div class="page" id="page-ajustes">
+  <div class="page-header fadein">
+    <h2>Ajustes ⚙️</h2>
+    <p>Datos · respaldo · app</p>
+  </div>
+
+  <!-- App identity card -->
+  <div class="fadein" style="background:linear-gradient(135deg,rgba(0,122,255,0.12),rgba(88,86,214,0.08));border:1.5px solid rgba(0,122,255,0.15);border-radius:20px;padding:20px;margin-bottom:20px;display:flex;align-items:center;gap:16px">
+    <div style="width:52px;height:52px;background:linear-gradient(135deg,var(--blue),var(--purple));border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0">💰</div>
+    <div>
+      <div style="font-size:1.05rem;font-weight:800;letter-spacing:-0.02em">Finanzas</div>
+      <div style="font-size:0.72rem;color:var(--muted);margin-top:2px">Tu app de presupuesto personal</div>
+      <div style="font-size:0.65rem;color:var(--blue);margin-top:4px;font-weight:600">v3.0 · by Josue</div>
+    </div>
+  </div>
+
+  <!-- Datos section -->
+  <div class="block fadein">
+    <div class="block-title">
+      <span class="title-with-icon">
+        <span class="ui-svg-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3"/></svg></span>
+        Mis datos
+      </span>
+      <span id="ajustes-meses-badge" style="font-size:0.65rem;background:rgba(0,0,0,0.05);color:var(--muted);padding:3px 8px;border-radius:99px;font-weight:700"></span>
+    </div>
+
+    <!-- Export -->
+    <div onclick="exportarDatos()" style="display:flex;align-items:center;gap:14px;padding:14px 4px;border-bottom:1px solid rgba(0,0,0,0.05);cursor:pointer;border-radius:10px;transition:background 0.15s;-webkit-tap-highlight-color:rgba(0,0,0,0.04)">
+      <div style="width:40px;height:40px;background:rgba(52,199,89,0.1);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0">📤</div>
+      <div style="flex:1">
+        <div style="font-size:0.88rem;font-weight:700">Exportar datos</div>
+        <div style="font-size:0.68rem;color:var(--muted);margin-top:2px">Descarga un respaldo JSON de todo</div>
+      </div>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="16" height="16" style="color:var(--muted);flex-shrink:0"><path d="M9 18l6-6-6-6"/></svg>
+    </div>
+
+    <!-- Import -->
+    <div onclick="document.getElementById('import-file-input').click()" style="display:flex;align-items:center;gap:14px;padding:14px 4px;border-bottom:1px solid rgba(0,0,0,0.05);cursor:pointer;border-radius:10px;transition:background 0.15s;-webkit-tap-highlight-color:rgba(0,0,0,0.04)">
+      <div style="width:40px;height:40px;background:rgba(0,122,255,0.1);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0">📥</div>
+      <div style="flex:1">
+        <div style="font-size:0.88rem;font-weight:700">Importar datos</div>
+        <div style="font-size:0.68rem;color:var(--muted);margin-top:2px">Restaura desde un archivo JSON</div>
+      </div>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="16" height="16" style="color:var(--muted);flex-shrink:0"><path d="M9 18l6-6-6-6"/></svg>
+    </div>
+
+    <!-- Reset — danger zone -->
+    <div onclick="resetearDatos()" style="display:flex;align-items:center;gap:14px;padding:14px 4px;cursor:pointer;border-radius:10px;-webkit-tap-highlight-color:rgba(255,59,48,0.04)">
+      <div style="width:40px;height:40px;background:rgba(255,59,48,0.08);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0">🗑️</div>
+      <div style="flex:1">
+        <div style="font-size:0.88rem;font-weight:700;color:var(--red)">Borrar todos los datos</div>
+        <div style="font-size:0.68rem;color:var(--muted);margin-top:2px">Irreversible · exporta primero</div>
+      </div>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="16" height="16" style="color:rgba(255,59,48,0.4);flex-shrink:0"><path d="M9 18l6-6-6-6"/></svg>
+    </div>
+  </div>
+
+  <!-- Resumen de datos -->
+  <div class="block fadein">
+    <div class="block-title">
+      <span class="title-with-icon">
+        <span class="ui-svg-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 10h18"/><path d="M8 2v4"/><path d="M16 2v4"/></svg></span>
+        Resumen de meses
+      </span>
+    </div>
+    <div id="ajustes-resumen-meses"></div>
+  </div>
+
+</div>
+
 <!-- Hidden legacy elements kept for renderAhorro/renderHistorial compatibility -->
 <input type="file" id="import-file-input" accept=".json" style="display:none" onchange="importarDatos(event)"/>
 <select id="historial-select" style="display:none" onchange="renderHistorialDetail()"></select>
@@ -628,50 +685,135 @@ function loadState() {
   });
 }
 function saveState() {
-  try { localStorage.setItem('finanzas-v3', JSON.stringify(state)); } catch(e) {}
+  try {
+    // Before saving, strip the live-computed saldoBase/saldo from tarjetas
+    // so they are always re-derived fresh from the previous month on load.
+    // We only persist what the user actually entered: cargo, cargoItems, fechaCorte, name, id.
+    const toSave = JSON.parse(JSON.stringify(state));
+    Object.keys(toSave.months).forEach(k => {
+      const md = toSave.months[k];
+      if (!md.tarjetas) return;
+      md.tarjetas = md.tarjetas.map(t => ({
+        id: t.id,
+        name: t.name,
+        cargo: t.cargo || 0,
+        cargoItems: t.cargoItems || [],
+        fechaCorte: t.fechaCorte || '',
+        ...(t.saldoOverride !== undefined ? { saldoOverride: t.saldoOverride } : {})
+      }));
+    });
+    localStorage.setItem('finanzas-v3', JSON.stringify(toSave));
+  } catch(e) {}
 }
 
 function getMonthData(key) {
   if (!state.months[key]) {
-    const prevTarjetas = getPrevMonthTarjetas(key);
     state.months[key] = {
       nomina: 0, vales: 0,
       ingresos: [],
       expenses: defaultExpenses(),
-      tarjetas: JSON.parse(JSON.stringify(prevTarjetas))
+      tarjetas: []
     };
     saveState();
   }
-  if (!state.months[key].tarjetas || state.months[key].tarjetas.length === 0) {
-    const prevTarjetas = getPrevMonthTarjetas(key);
-    if (prevTarjetas.length > 0) {
-      state.months[key].tarjetas = JSON.parse(JSON.stringify(prevTarjetas));
-      saveState();
-    }
-  }
   migrateIngresos(state.months[key]);
   migrateFechaCorte(state.months[key]);
-  return state.months[key];
+
+  // Always inject live-computed saldo arrastrado from previous month
+  // without mutating what's persisted (cargo, cargoItems, fechaCorte stay as-is)
+  const md = state.months[key];
+  const prevTarjetas = getPrevMonthTarjetas(key);
+
+  // Merge: keep user's own edits (cargo, cargoItems, fechaCorte) for tarjetas that exist,
+  // but always use the live-computed saldoBase/saldo from prev month
+  if (prevTarjetas.length > 0) {
+    md.tarjetas = prevTarjetas.map(prev => {
+      const existing = (md.tarjetas || []).find(t => t.id === prev.id);
+      if (existing) {
+        // If user manually overrode the saldo this month, use that instead of arrastre
+        const base = existing.saldoOverride !== undefined ? existing.saldoOverride : prev.saldo;
+        const itemsTotal = (existing.cargoItems || []).reduce((s, ci) => s + (ci.amount || 0), 0);
+        return {
+          ...existing,
+          saldoBase: base,
+          saldo: base + itemsTotal,
+        };
+      }
+      return prev;
+    });
+  } else if (!md.tarjetas || md.tarjetas.length === 0) {
+    // No previous months — use global tarjetas template if available
+    const tmpl = (state.deuda && state.deuda.tarjetas) || [];
+    if (tmpl.length > 0) {
+      md.tarjetas = tmpl.map(t => ({ ...t, cargo: 0, cargoItems: [] }));
+    }
+  }
+
+  return md;
 }
 
 function getPrevMonthTarjetas(key) {
   const allKeys = Object.keys(state.months).filter(k => k < key).sort().reverse();
   for (const k of allKeys) {
-    if (state.months[k].tarjetas && state.months[k].tarjetas.length > 0) {
-      return state.months[k].tarjetas.map(t => {
-        // Saldo nuevo = saldo anterior menos lo que se abonó ese mes
-        const saldoArrastrado = Math.max(0, (t.saldo||0) - (t.cargo||0));
+    const prevMd = state.months[k];
+    // Get the STORED tarjetas for that month (what the user actually saved)
+    // We need to know the real saldo for that month, which may itself be computed
+    // So we call getEffectiveTarjetas recursively (with depth guard)
+    const tarjetas = getEffectiveTarjetas(k);
+    if (tarjetas && tarjetas.length > 0) {
+      return tarjetas.map(t => {
+        const saldoArrastrado = Math.max(0, (t.saldo || 0) - (t.cargo || 0));
         return {
-          ...t, id: t.id, name: t.name,
+          ...t,
           saldo: saldoArrastrado,
           saldoBase: saldoArrastrado,
           cargo: 0,
-          fechaCorte: t.fechaCorte||'', cargoItems: []
+          cargoItems: []
         };
       });
     }
   }
-  return state.deuda.tarjetas.map(t => ({ ...t, cargo: 0, fechaCorte: '', cargoItems: [] }));
+  return [];
+}
+
+// Returns effective tarjetas for a month with computed saldo (without triggering full getMonthData)
+function getEffectiveTarjetas(key, depth) {
+  if ((depth || 0) > 12) return []; // safety guard against infinite recursion
+  const md = state.months[key];
+  if (!md) return [];
+  const stored = md.tarjetas || [];
+
+  // Find the previous month's effective tarjetas to compute saldoBase
+  const allPrevKeys = Object.keys(state.months).filter(k => k < key).sort().reverse();
+  let prevEffective = [];
+  for (const k of allPrevKeys) {
+    const pe = getEffectiveTarjetas(k, (depth || 0) + 1);
+    if (pe.length > 0) { prevEffective = pe; break; }
+  }
+
+  if (prevEffective.length > 0) {
+    return prevEffective.map(prev => {
+      const storedT = stored.find(t => t.id === prev.id) || {};
+      const base = storedT.saldoOverride !== undefined
+        ? storedT.saldoOverride
+        : Math.max(0, (prev.saldo || 0) - (prev.cargo || 0));
+      const itemsTotal = (storedT.cargoItems || []).reduce((s, ci) => s + (ci.amount || 0), 0);
+      return {
+        ...prev,
+        ...storedT,
+        saldoBase: base,
+        saldo: base + itemsTotal,
+        cargo: storedT.cargo || 0
+      };
+    });
+  }
+
+  // First month ever — stored saldo is authoritative
+  return stored.map(t => ({
+    ...t,
+    saldo: t.saldoOverride !== undefined ? t.saldoOverride : (t.saldo || 0),
+    saldoBase: t.saldoOverride !== undefined ? t.saldoOverride : (t.saldo || 0)
+  }));
 }
 
 function defaultExpenses() {
@@ -681,19 +823,43 @@ function defaultExpenses() {
 // ════════════════════════════════════════════
 //  NAVIGATION
 // ════════════════════════════════════════════
-function toggleMenuHome() {
-  const menu = document.getElementById('menu-home');
-  menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+function renderAjustes() {
+  const keys = Object.keys(state.months).sort().reverse();
+  // Badge
+  const badge = document.getElementById('ajustes-meses-badge');
+  if (badge) badge.textContent = `${keys.length} ${keys.length === 1 ? 'mes' : 'meses'}`;
+
+  // Resumen de meses
+  const el = document.getElementById('ajustes-resumen-meses');
+  if (!el) return;
+  if (keys.length === 0) {
+    el.innerHTML = `<p class="small-muted" style="text-align:center;padding:12px 0">Sin datos todavía</p>`;
+    return;
+  }
+  el.innerHTML = keys.map(k => {
+    const [y, m] = k.split('-').map(Number);
+    const md = state.months[k];
+    const totalIngresos = (md.ingresos||[]).reduce((s,i)=>s+(i.amount||0),0) || (md.nomina||0);
+    const tarjetasK = md.tarjetas || [];
+    const totalCortes = tarjetasK.reduce((s,t)=>s+(t.cargo||0),0);
+    const totalGastos = (md.expenses||[]).filter(e=>e.type!=='vales'&&e.fuente!=='__AHORRO__').reduce((s,e)=>s+(e.amount||0),0) + totalCortes;
+    const libre = totalIngresos - totalGastos;
+    const tieneAhorro = getTotalAhorradoMes(k) > 0;
+    return `
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(0,0,0,0.05)">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:0.85rem;font-weight:700">${MONTHS_ES[m-1]} ${y} ${tieneAhorro?'🐷':''}</div>
+          <div style="font-size:0.65rem;color:var(--muted);margin-top:2px">Ingresos ${fmt(totalIngresos)} · Gastos ${fmt(totalGastos)}</div>
+        </div>
+        <div style="font-size:0.85rem;font-weight:800;color:${libre>=0?'var(--green)':'var(--red)'};flex-shrink:0">${libre>=0?'+':''}${fmt(libre)}</div>
+      </div>`;
+  }).join('') + `<div style="padding-top:10px;border-top:2px solid rgba(0,0,0,0.05);display:flex;justify-content:space-between;align-items:center;margin-top:2px">
+    <span style="font-size:0.72rem;font-weight:700;color:var(--muted)">${keys.length} ${keys.length===1?'mes':'meses'} registrados</span>
+  </div>`;
 }
 
-// Cerrar menú al tocar fuera
-document.addEventListener('click', e => {
-  const menu = document.getElementById('menu-home');
-  const btn = document.getElementById('menu-home-btn');
-  if (menu && !menu.contains(e.target) && e.target !== btn) {
-    menu.style.display = 'none';
-  }
-});
+// Cerrar menú al tocar fuera (legacy — ya no hay menú, pero dejamos listener vacío por si acaso)
+document.addEventListener('click', e => {});
 
 function showPage(id) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -914,6 +1080,7 @@ function renderAll() {
   renderDeuda(md);
   renderHistorial();
   renderAhorro();
+  renderAjustes();
 }
 
 // ════════════════════════════════════════════
@@ -1606,28 +1773,6 @@ function renderDeuda(md) {
   document.getElementById('deuda-total-kpi').textContent = fmt(totalDeuda);
   document.getElementById('deuda-meses-kpi').textContent = `Abono total este mes: ${fmt(totalCargo)}`;
 
-  // Corte alerts banner
-  const banner = document.getElementById('corte-alerts-banner');
-  const alertCards = tarjetas.filter(t => t.fechaCorte && daysUntilCorte(parseInt(t.fechaCorte)) !== null && daysUntilCorte(parseInt(t.fechaCorte)) <= 7);
-  if (alertCards.length > 0) {
-    banner.style.display = 'block';
-    banner.innerHTML = alertCards.map(t => {
-      const diff = daysUntilCorte(parseInt(t.fechaCorte));
-      const isUrgent = diff <= 3;
-      const emoji = diff === 0 ? '⚠️' : isUrgent ? '🔴' : '🟡';
-      const msg = diff === 0 ? `¡El corte de <b>${t.name}</b> es hoy!`
-                : diff === 1 ? `El corte de <b>${t.name}</b> es mañana`
-                : `El corte de <b>${t.name}</b> es en ${diff} días`;
-      return `<div style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:14px;margin-bottom:8px;background:${isUrgent?'rgba(255,59,48,0.08)':'rgba(255,159,10,0.08)'};border:1px solid ${isUrgent?'rgba(255,59,48,0.2)':'rgba(255,159,10,0.2)'}">
-        <span style="font-size:1.2rem">${emoji}</span>
-        <div style="flex:1;font-size:0.82rem">${msg}</div>
-      </div>`;
-    }).join('');
-  } else {
-    banner.style.display = 'none';
-    banner.innerHTML = '';
-  }
-
   const tbl = document.getElementById('tarjetas-table');
   if (tarjetas.length === 0) {
     tbl.innerHTML = `<p class="small-muted" style="text-align:center;padding:16px">Toca "+ Agregar" para añadir una tarjeta</p>`;
@@ -1639,7 +1784,6 @@ function renderDeuda(md) {
       const saldoActual = t.saldo || 0;
       const abonoMes = t.cargo || 0;
       const saldoRestante = Math.max(0, saldoActual - abonoMes);
-      const corteBadge = t.fechaCorte ? getCorteBadge(parseInt(t.fechaCorte)) : '';
       const pctPagado = saldoActual > 0 ? Math.min(100, (abonoMes / saldoActual) * 100) : 0;
 
       return `
@@ -1710,7 +1854,6 @@ function renderDeuda(md) {
               style="font-size:0.78rem;padding:5px 10px">
               ${t.fechaCorte ? `✂️ Día ${t.fechaCorte}` : '✂️ Corte'}
             </button>
-            ${corteBadge}
           </div>
           <button style="background:rgba(0,122,255,0.07);border:1px solid rgba(0,122,255,0.15);color:var(--blue);border-radius:10px;padding:5px 10px;font-size:0.72rem;font-weight:700;cursor:pointer" onclick="openCargoItems('${t.id}')">
             📋 ${hasItems ? `Gastos (${items.length})` : 'Desglose'}
@@ -1791,15 +1934,7 @@ function daysUntilCorte(diaCorte) {
   return diff;
 }
 
-function getCorteBadge(diaCorte) {
-  if (!diaCorte) return '';
-  const diff = daysUntilCorte(diaCorte);
-  if (diff === null) return '';
-  if (diff === 0) return `<span class="corte-alert urgent">⚠️ ¡Corte hoy!</span>`;
-  if (diff <= 3) return `<span class="corte-alert urgent">🔴 Corte en ${diff} día${diff===1?'':'s'}</span>`;
-  if (diff <= 7) return `<span class="corte-alert">🟡 Corte en ${diff} días</span>`;
-  return '';
-}
+function getCorteBadge(diaCorte) { return ''; }
 
 // ── Day Picker Modal ──
 let _dayPickerTarjetaId = null;
@@ -1932,10 +2067,11 @@ function blurTarjetaInput(el, id, field) {
   el.dataset.raw = val;
   el.value = fmtNum(val);
   if (field === 'saldo') {
-    // Save as saldoBase; saldo = saldoBase + sum(cargoItems)
+    // User is manually overriding the saldo for this month
     const md = getMonthData(currentKey());
     const t = md.tarjetas.find(x => x.id === id);
     if (t) {
+      t.saldoOverride = val; // persist as explicit override
       t.saldoBase = val;
       const itemsTotal = (t.cargoItems||[]).reduce((s,ci)=>s+(ci.amount||0),0);
       t.saldo = val + itemsTotal;
@@ -1958,7 +2094,7 @@ function updateTarjeta(id, field, value) {
 function addTarjeta() {
   const key = currentKey();
   const md = getMonthData(key);
-  md.tarjetas.push({ id: uid(), name: 'Nueva tarjeta', saldo: 0, cargo: 0, fechaCorte: '', cargoItems: [] });
+  md.tarjetas.push({ id: uid(), name: 'Nueva tarjeta', saldo: 0, saldoBase: 0, saldoOverride: 0, cargo: 0, fechaCorte: '', cargoItems: [] });
   saveState();
   renderAll();
 }
@@ -2691,7 +2827,7 @@ document.addEventListener('touchend', e => {
 //  SWIPE HORIZONTAL ENTRE PESTAÑAS
 // ════════════════════════════════════════════
 (function() {
-  const PAGES = ['home', 'gastos', 'deuda', 'ahorro'];
+  const PAGES = ['home', 'gastos', 'deuda', 'ahorro', 'ajustes'];
   let touchStartX = 0, touchStartY = 0, touchStartTime = 0;
   let currentPageId = 'home';
 
