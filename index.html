@@ -19,7 +19,7 @@
   --safe-top:env(safe-area-inset-top,0px);
 }
 html,body{height:100%;overscroll-behavior:none;overflow-x:hidden;-webkit-overflow-scrolling:touch;}
-body{background:var(--bg);color:var(--text);min-height:100vh;}
+body{background:var(--bg);color:var(--text);min-height:100vh;padding-top:18px;}
 input,select,textarea{font-size:16px!important;}
 
 /* NAV */
@@ -218,99 +218,67 @@ select.inp{cursor:pointer;}
 
 canvas{opacity:0.92;}
 
-/* MODERN TARJETAS */
-.tarjeta-beauty{
-  background:linear-gradient(180deg,#ffffff 0%,#fafafa 100%);
-  border:1px solid rgba(0,0,0,0.06);
+/* FIXED DEUDA UI */
+.tarjeta-modern{
+  background:linear-gradient(180deg,#fff,#fcfcfc);
+  border:1px solid rgba(0,0,0,.06);
   border-radius:24px;
   padding:18px;
   margin-bottom:16px;
-  box-shadow:0 8px 24px rgba(0,0,0,0.05);
+  box-shadow:0 4px 14px rgba(0,0,0,.04);
 }
-.tarjeta-top{
-  display:flex;
-  justify-content:space-between;
-  align-items:flex-start;
-  margin-bottom:16px;
-  gap:12px;
-}
-.tarjeta-name{
-  font-size:1.05rem;
+.tarjeta-modern .card-row-name{
+  font-size:1.1rem;
   font-weight:800;
-  border:none;
-  background:none;
-  width:100%;
-  outline:none;
-  color:var(--text);
 }
-.tarjeta-mini{
-  font-size:.7rem;
-  color:var(--muted);
-  font-weight:600;
-  margin-top:3px;
+.tarjeta-modern .card-fields{
+  margin-top:10px;
 }
-.tarjeta-grid{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:12px;
-}
-.tarjeta-box{
+.tarjeta-modern .card-field{
   background:#f7f7f8;
-  border-radius:18px;
   padding:14px;
+  border-radius:18px;
 }
-.tarjeta-box label{
-  display:block;
-  font-size:.62rem;
-  text-transform:uppercase;
-  letter-spacing:.08em;
-  color:var(--muted);
+.tarjeta-modern .card-field label{
   margin-bottom:8px;
-  font-weight:700;
 }
-.tarjeta-money{
-  display:flex;
-  align-items:center;
-  gap:4px;
+.tarjeta-modern .card-field.field-saldo input,
+.tarjeta-modern .card-field.field-saldo .card-field-prefix{
+  color:var(--red);
 }
-.tarjeta-money span{
-  font-size:1rem;
-  font-weight:800;
-}
-.tarjeta-money input{
-  border:none;
-  background:none;
-  width:100%;
-  outline:none;
-  font-size:1.15rem;
-  font-weight:800;
-  color:var(--text);
+.tarjeta-modern .card-field.field-cargo input,
+.tarjeta-modern .card-field.field-cargo .card-field-prefix{
+  color:var(--green);
 }
 .tarjeta-restante{
   margin-top:14px;
-  background:rgba(52,199,89,0.08);
-  border:1px solid rgba(52,199,89,0.18);
   border-radius:18px;
   padding:14px;
+  background:rgba(52,199,89,.08);
+  border:1px solid rgba(52,199,89,.18);
+}
+.tarjeta-restante.red{
+  background:rgba(255,59,48,.08);
+  border:1px solid rgba(255,59,48,.18);
 }
 .tarjeta-restante-title{
   font-size:.68rem;
+  font-weight:800;
   text-transform:uppercase;
   letter-spacing:.08em;
-  color:var(--green);
-  font-weight:800;
   margin-bottom:5px;
 }
-.tarjeta-restante-val{
-  font-size:1.45rem;
-  font-weight:900;
+.tarjeta-restante.green .tarjeta-restante-title,
+.tarjeta-restante.green .tarjeta-restante-val{
   color:var(--green);
 }
-.tarjeta-corte{
-  margin-top:14px;
-  font-size:.8rem;
-  color:var(--muted);
-  font-weight:700;
+.tarjeta-restante.red .tarjeta-restante-title,
+.tarjeta-restante.red .tarjeta-restante-val{
+  color:var(--red);
+}
+.tarjeta-restante-val{
+  font-size:1.5rem;
+  font-weight:900;
 }
 
 </style>
@@ -435,7 +403,7 @@ canvas{opacity:0.92;}
 <div class="page" id="page-deuda">
   <div class="page-header fadein">
     <h2>Mi Deuda 💳</h2>
-    <p>Tarjetas organizadas · pagos · saldo restante automático</p>
+    <p>Tarjetas · desglose · corte</p>
   </div>
 
   <!-- Corte alerts banner -->
@@ -452,7 +420,7 @@ canvas{opacity:0.92;}
   <div class="block fadein">
     <div class="block-title">
       <span class="title-with-icon"><span class="ui-svg-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/></svg></span>Mis tarjetas</span>
-      
+      <button class="btn-outline" onclick="addTarjeta()" style="font-size:0.7rem;padding:5px 10px">+ Agregar</button>
     </div>
     <div id="tarjetas-table"></div>
   </div>
@@ -1672,114 +1640,116 @@ function moveExpense(id, dir) {
 // ════════════════════════════════════════════
 //  DEUDA PAGE
 // ════════════════════════════════════════════
+
 function renderDeuda(md) {
+  const wrap = document.getElementById('tarjetas-table');
+  if (!wrap) return;
+
   const tarjetas = md.tarjetas || [];
-  const totalDeuda = tarjetas.reduce((s,t)=>s+(t.saldo||0),0);
-  const totalCargo = tarjetas.reduce((s,t)=>s+(t.cargo||0),0);
+  const deudaTotal = tarjetas.reduce((s,t)=>s+Math.max(0,(t.saldo||0)-(t.cargo||0)),0);
 
-  document.getElementById('deuda-total-kpi').textContent = fmt(totalDeuda);
-  document.getElementById('deuda-meses-kpi').textContent = `Abono total este mes: ${fmt(totalCargo)}`;
+  document.getElementById('deuda-total-kpi').textContent = fmt(deudaTotal);
+  document.getElementById('deuda-meses-kpi').textContent =
+    tarjetas.length ? `${tarjetas.length} tarjetas activas` : 'Sin tarjetas';
 
-  // Corte alerts banner
-  const banner = document.getElementById('corte-alerts-banner');
-  const alertCards = tarjetas.filter(t => t.fechaCorte && daysUntilCorte(parseInt(t.fechaCorte)) !== null && daysUntilCorte(parseInt(t.fechaCorte)) <= 7);
-  if (alertCards.length > 0) {
-    banner.style.display = 'block';
-    banner.innerHTML = alertCards.map(t => {
-      const diff = daysUntilCorte(parseInt(t.fechaCorte));
-      const isUrgent = diff <= 3;
-      const emoji = diff === 0 ? '⚠️' : isUrgent ? '🔴' : '🟡';
-      const msg = diff === 0 ? `¡El corte de <b>${t.name}</b> es hoy!`
-                : diff === 1 ? `El corte de <b>${t.name}</b> es mañana`
-                : `El corte de <b>${t.name}</b> es en ${diff} días`;
-      return `<div style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:14px;margin-bottom:8px;background:${isUrgent?'rgba(255,59,48,0.08)':'rgba(255,159,10,0.08)'};border:1px solid ${isUrgent?'rgba(255,59,48,0.2)':'rgba(255,159,10,0.2)'}">
-        <span style="font-size:1.2rem">${emoji}</span>
-        <div style="flex:1;font-size:0.82rem">${msg}</div>
-      </div>`;
-    }).join('');
-  } else {
-    banner.style.display = 'none';
-    banner.innerHTML = '';
-  }
+  wrap.innerHTML = tarjetas.map((t,i)=>{
+    const restante = Math.max(0,(t.saldo||0)-(t.cargo||0));
+    const restanteClass = restante > 0 ? 'red' : 'green';
 
-  const tbl = document.getElementById('tarjetas-table');
-  if (tarjetas.length === 0) {
-    tbl.innerHTML = `<p class="small-muted" style="text-align:center;padding:16px">Toca "+ Agregar" para añadir una tarjeta</p>`;
-  } else {
-    tbl.innerHTML = tarjetas.map(t => {
-      const items = t.cargoItems || [];
-      const itemsTotal = items.reduce((s,ci)=>s+(ci.amount||0),0);
-      const hasItems = items.length > 0;
-      return `
-      <div class="card-row" id="card-${t.id}">
-        <div class="card-row-header">
-          <input class="card-row-name" value="${t.name}" placeholder="Nombre tarjeta"
-            onchange="updateTarjeta('${t.id}','name',this.value)"/>
-          <button class="del-card-btn" onclick="removeTarjeta('${t.id}')">✕ Quitar</button>
-        </div>
-        <div class="card-fields">
-          <div class="card-field field-saldo">
-            <label>Saldo que debo</label>
-            <div class="card-field-input-wrap">
-              <span class="card-field-prefix">$</span>
-              <input type="text" inputmode="decimal" value="${fmtNum(t.saldo)}" placeholder="0"
-                onfocus="focusTarjetaInput(this)"
-                onblur="blurTarjetaInput(this,'${t.id}','saldo')"
-                data-raw="${t.saldoBase||t.saldo||0}"/>
-            </div>
-            ${itemsTotal > 0 ? `<div style="font-size:0.6rem;color:var(--muted);margin-top:3px">Base ${fmt(t.saldoBase||0)} + cargos ${fmt(itemsTotal)}</div>` : ''}
-          </div>
-          <div class="card-field field-cargo">
-            <label>Abono este mes</label>
-            <div class="card-field-input-wrap">
-              <span class="card-field-prefix">$</span>
-              <input type="text" inputmode="decimal" value="${fmtNum(t.cargo)}" placeholder="0"
-                onfocus="focusTarjetaInput(this)"
-                onblur="blurTarjetaInput(this,'${t.id}','cargo')"
-                data-raw="${t.cargo||0}"/>
-            </div>
+    return `
+    <div class="tarjeta-modern">
+      <div class="card-row-header">
+        <input class="card-row-name"
+          value="${t.name||''}"
+          onchange="updateTarjeta('${t.id}','name',this.value)"/>
+
+        <button class="del-card-btn"
+          onclick="deleteTarjeta('${t.id}')">Eliminar</button>
+      </div>
+
+      <div class="card-fields">
+        <div class="card-field field-saldo">
+          <label>Saldo actual</label>
+          <div class="card-field-input-wrap">
+            <span class="card-field-prefix">$</span>
+            <input type="text"
+              value="${fmtNum(t.saldo||0)}"
+              onfocus="focusMoneyInput(this)"
+              onblur="blurMoneyInput(this,'${t.id}','saldo')"/>
           </div>
         </div>
-        <!-- Fecha de corte -->
-        <div class="corte-row">
-          <span class="corte-label">✂️ Fecha de corte</span>
-          <button class="corte-day-btn ${t.fechaCorte ? 'set' : ''}" onclick="openDayPicker('${t.id}')">
-            ${t.fechaCorte ? `Día ${t.fechaCorte} 📅` : 'Seleccionar día'}
-          </button>
-          ${t.fechaCorte ? getCorteBadge(parseInt(t.fechaCorte)) : ''}
-        </div>
-        <!-- Desglose de gastos -->
-        <div class="cargo-items" style="margin-top:10px;border-top:1px solid rgba(0,0,0,0.05);padding-top:10px">
-          <div class="cargo-items-title">
-            <span>📋 En qué gasté esta tarjeta</span>
-            <button class="btn-outline" style="font-size:0.65rem;padding:4px 8px" onclick="openCargoItems('${t.id}')">
-              ${hasItems ? `Ver / editar (${items.length})` : '+ Agregar'}
-            </button>
-          </div>
-          <div style="display:flex;flex-direction:column;gap:4px">
-            <div style="display:flex;justify-content:space-between;align-items:center;font-size:0.78rem;padding:3px 0;opacity:0.7">
-              <span style="color:var(--muted);font-style:italic">📌 Saldo arrastrado</span>
-              <span style="font-weight:600;color:var(--red)">${fmt(t.saldoBase !== undefined ? t.saldoBase : t.saldo||0)}</span>
-            </div>
-            ${hasItems ? `
-              ${items.slice(0,3).map(ci=>`
-                <div style="display:flex;justify-content:space-between;align-items:center;font-size:0.78rem;padding:3px 0">
-                  <span style="color:var(--text)">${ci.name||'Sin nombre'}</span>
-                  <span style="font-weight:600;color:var(--blue)">${fmt(ci.amount||0)}</span>
-                </div>`).join('')}
-              ${items.length > 3 ? `<div style="font-size:0.65rem;color:var(--muted);margin-top:2px">+${items.length-3} más...</div>` : ''}
-              <div class="cargo-items-total">
-                <span style="color:var(--muted)">Total</span>
-                <span style="color:var(--red)">${fmt(t.saldo||0)}</span>
-              </div>
-            ` : ''}
-          </div>
-        </div>
-      </div>`;
-    }).join('');
-  }
 
+        <div class="card-field field-cargo">
+          <label>Pago del mes</label>
+          <div class="card-field-input-wrap">
+            <span class="card-field-prefix">$</span>
+            <input type="text"
+              value="${fmtNum(t.cargo||0)}"
+              onfocus="focusMoneyInput(this)"
+              onblur="blurMoneyInput(this,'${t.id}','cargo')"/>
+          </div>
+        </div>
+      </div>
+
+      <div class="tarjeta-restante ${restanteClass}">
+        <div class="tarjeta-restante-title">Saldo restante después del pago</div>
+        <div class="tarjeta-restante-val">${fmt(restante)}</div>
+      </div>
+
+      <div class="corte-row">
+        <span class="corte-label">Fecha de corte</span>
+        <button class="corte-day-btn ${t.fechaCorte ? 'set' : ''}"
+          onclick="openDayPicker('${t.id}')">
+          ${t.fechaCorte || 'Elegir día'}
+        </button>
+      </div>
+    </div>`;
+  }).join('');
 }
+
+function focusMoneyInput(el){
+  el.dataset.prev = el.value;
+  el.value = el.value.replace(/,/g,'');
+}
+
+function blurMoneyInput(el,id,field){
+  const val = parseFloat(el.value.replace(/,/g,'')) || 0;
+  el.value = Number(val).toLocaleString('es-MX');
+  updateTarjeta(id,field,val);
+}
+
+function updateTarjeta(id,field,value){
+  const md = getMonthData(currentKey());
+  const tarjeta = (md.tarjetas||[]).find(t=>t.id===id);
+  if(!tarjeta) return;
+
+  tarjeta[field] = field === 'name' ? value : (parseFloat(value)||0);
+
+  saveState();
+  renderDeuda(md);
+  showUpdatedBadge();
+}
+
+function deleteTarjeta(id){
+  const md = getMonthData(currentKey());
+  md.tarjetas = (md.tarjetas||[]).filter(t=>t.id!==id);
+  saveState();
+  renderDeuda(md);
+  showUpdatedBadge();
+}
+
+function openDayPicker(id){
+  const md = getMonthData(currentKey());
+  const tarjeta = (md.tarjetas||[]).find(t=>t.id===id);
+  const day = prompt('Día de corte (1-31)', tarjeta.fechaCorte || '');
+
+  if(day === null) return;
+
+  tarjeta.fechaCorte = day;
+  saveState();
+  renderDeuda(md);
+}
+
 
 function formatCorte(dateStr) {
   if (!dateStr) return '';
@@ -2760,98 +2730,6 @@ document.addEventListener('touchend', e => {
     _origShowPage(id);
   };
 })();
-
-function renderDeuda(md){
-  const tarjetasWrap = document.getElementById('tarjetas-table');
-  if(!tarjetasWrap) return;
-
-  const tarjetas = md.tarjetas || [];
-  const total = tarjetas.reduce((s,t)=>s + Math.max(0, (t.saldo||0) - (t.cargo||0)), 0);
-
-  const totalEl = document.getElementById('deuda-total-kpi');
-  if(totalEl) totalEl.textContent = fmt(total);
-
-  const mesesEl = document.getElementById('deuda-meses-kpi');
-  if(mesesEl){
-    mesesEl.textContent = tarjetas.length
-      ? `${tarjetas.length} tarjetas activas`
-      : 'Sin tarjetas registradas';
-  }
-
-  if(!tarjetas.length){
-    tarjetasWrap.innerHTML = `
-      <div class="small-muted" style="text-align:center;padding:20px 0">
-        No hay tarjetas registradas
-      </div>`;
-    return;
-  }
-
-  tarjetasWrap.innerHTML = tarjetas.map((t,index)=>{
-    const saldo = Number(t.saldo||0);
-    const pago = Number(t.cargo||0);
-    const restante = Math.max(0, saldo - pago);
-
-    return `
-      <div class="tarjeta-beauty">
-        <div class="tarjeta-top">
-          <div style="flex:1">
-            <input class="tarjeta-name"
-              value="${t.name || 'Tarjeta'}"
-              onchange="updateTarjetaField('${t.id}','name',this.value)">
-            <div class="tarjeta-mini">Tarjeta ${index+1}</div>
-          </div>
-        </div>
-
-        <div class="tarjeta-grid">
-          <div class="tarjeta-box">
-            <label>Saldo actual</label>
-            <div class="tarjeta-money">
-              <span>$</span>
-              <input type="number"
-                value="${saldo}"
-                onchange="updateTarjetaField('${t.id}','saldo',this.value)">
-            </div>
-          </div>
-
-          <div class="tarjeta-box">
-            <label>Pago del mes</label>
-            <div class="tarjeta-money">
-              <span>$</span>
-              <input type="number"
-                value="${pago}"
-                onchange="updateTarjetaField('${t.id}','cargo',this.value)">
-            </div>
-          </div>
-        </div>
-
-        <div class="tarjeta-restante">
-          <div class="tarjeta-restante-title">Saldo restante después del pago</div>
-          <div class="tarjeta-restante-val">${fmt(restante)}</div>
-        </div>
-
-        <div class="tarjeta-corte">
-          Fecha de corte: ${t.fechaCorte || 'Sin definir'}
-        </div>
-      </div>
-    `;
-  }).join('');
-}
-
-function updateTarjetaField(id,field,value){
-  const md = getMonthData(currentKey());
-  const tarjeta = (md.tarjetas||[]).find(t=>t.id===id);
-  if(!tarjeta) return;
-
-  if(field === 'saldo' || field === 'cargo'){
-    tarjeta[field] = parseFloat(value) || 0;
-  } else {
-    tarjeta[field] = value;
-  }
-
-  saveState();
-  renderDeuda(md);
-}
-
 </script>
 </body>
 </html>
