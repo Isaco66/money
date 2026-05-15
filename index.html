@@ -724,29 +724,36 @@ function getMonthData(key) {
   const md = state.months[key];
   const prevTarjetas = getPrevMonthTarjetas(key);
 
-  // Merge: keep user's own edits (cargo, cargoItems, fechaCorte) for tarjetas that exist,
-  // but always use the live-computed saldoBase/saldo from prev month
+  // Merge tarjetas:
+  // 1. Tarjetas que vienen arrastradas del mes anterior → saldo live calculado
+  // 2. Tarjetas nuevas creadas en este mes (no existen en meses previos) → saldo propio
   if (prevTarjetas.length > 0) {
-    md.tarjetas = prevTarjetas.map(prev => {
-      const existing = (md.tarjetas || []).find(t => t.id === prev.id);
+    const prevIds = new Set(prevTarjetas.map(p => p.id));
+    const storedTarjetas = md.tarjetas || [];
+
+    // Carried over from prev month
+    const carried = prevTarjetas.map(prev => {
+      const existing = storedTarjetas.find(t => t.id === prev.id);
       if (existing) {
-        // If user manually overrode the saldo this month, use that instead of arrastre
         const base = existing.saldoOverride !== undefined ? existing.saldoOverride : prev.saldo;
         const itemsTotal = (existing.cargoItems || []).reduce((s, ci) => s + (ci.amount || 0), 0);
-        return {
-          ...existing,
-          saldoBase: base,
-          saldo: base + itemsTotal,
-        };
+        return { ...existing, saldoBase: base, saldo: base + itemsTotal };
       }
       return prev;
     });
-  } else if (!md.tarjetas || md.tarjetas.length === 0) {
-    // No previous months — use global tarjetas template if available
-    const tmpl = (state.deuda && state.deuda.tarjetas) || [];
-    if (tmpl.length > 0) {
-      md.tarjetas = tmpl.map(t => ({ ...t, cargo: 0, cargoItems: [] }));
-    }
+
+    // New tarjetas created this month (not in any previous month)
+    const brandNew = storedTarjetas.filter(t => !prevIds.has(t.id));
+
+    md.tarjetas = [...carried, ...brandNew];
+  } else {
+    // No previous months at all — everything in this month is brand new
+    // Keep md.tarjetas as-is (user's own entries), just ensure saldo is set from saldoOverride
+    md.tarjetas = (md.tarjetas || []).map(t => {
+      const base = t.saldoOverride !== undefined ? t.saldoOverride : (t.saldo || 0);
+      const itemsTotal = (t.cargoItems || []).reduce((s, ci) => s + (ci.amount || 0), 0);
+      return { ...t, saldoBase: base, saldo: base + itemsTotal };
+    });
   }
 
   return md;
@@ -792,20 +799,25 @@ function getEffectiveTarjetas(key, depth) {
   }
 
   if (prevEffective.length > 0) {
-    return prevEffective.map(prev => {
+    const prevIds = new Set(prevEffective.map(p => p.id));
+
+    const carried = prevEffective.map(prev => {
       const storedT = stored.find(t => t.id === prev.id) || {};
       const base = storedT.saldoOverride !== undefined
         ? storedT.saldoOverride
         : Math.max(0, (prev.saldo || 0) - (prev.cargo || 0));
       const itemsTotal = (storedT.cargoItems || []).reduce((s, ci) => s + (ci.amount || 0), 0);
-      return {
-        ...prev,
-        ...storedT,
-        saldoBase: base,
-        saldo: base + itemsTotal,
-        cargo: storedT.cargo || 0
-      };
+      return { ...prev, ...storedT, saldoBase: base, saldo: base + itemsTotal, cargo: storedT.cargo || 0 };
     });
+
+    // Brand-new tarjetas created in this month
+    const brandNew = stored.filter(t => !prevIds.has(t.id)).map(t => {
+      const base = t.saldoOverride !== undefined ? t.saldoOverride : (t.saldo || 0);
+      const itemsTotal = (t.cargoItems || []).reduce((s, ci) => s + (ci.amount || 0), 0);
+      return { ...t, saldoBase: base, saldo: base + itemsTotal };
+    });
+
+    return [...carried, ...brandNew];
   }
 
   // First month ever — stored saldo is authoritative
