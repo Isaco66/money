@@ -678,10 +678,17 @@ function loadState() {
   catch { state = {}; }
   if (!state.months) state.months = {};
   if (!state.deuda) state.deuda = { tarjetas: [] };
+  // Strip any computed fields that may have leaked into storage in previous versions
   Object.keys(state.months).forEach(k => {
-    if (!state.months[k].tarjetas) {
-      state.months[k].tarjetas = JSON.parse(JSON.stringify(state.deuda.tarjetas));
+    const md = state.months[k];
+    if (!md.tarjetas) {
+      md.tarjetas = JSON.parse(JSON.stringify(state.deuda.tarjetas));
     }
+    md.tarjetas = md.tarjetas.map(t => {
+      const clean = { id: t.id, name: t.name, cargo: t.cargo || 0, cargoItems: t.cargoItems || [], fechaCorte: t.fechaCorte || '' };
+      if (t.saldoOverride !== undefined) clean.saldoOverride = t.saldoOverride;
+      return clean;
+    });
   });
 }
 function saveState() {
@@ -722,48 +729,43 @@ function getMonthData(key) {
   migrateIngresos(state.months[key]);
   migrateFechaCorte(state.months[key]);
 
-  // Always inject live-computed saldo arrastrado from previous month
-  // without mutating what's persisted (cargo, cargoItems, fechaCorte stay as-is)
+  // Compute live tarjetas WITHOUT mutating state.months[key].tarjetas.
+  // We return a shallow copy of md with tarjetas replaced by the computed array.
   const md = state.months[key];
   const prevTarjetas = getPrevMonthTarjetas(key);
 
   const removed = new Set(md._removedTarjetas || []);
+  let computedTarjetas;
 
-  // Merge tarjetas:
-  // 1. Tarjetas que vienen arrastradas del mes anterior → saldo live calculado
-  // 2. Tarjetas nuevas creadas en este mes (no existen en meses previos) → saldo propio
   if (prevTarjetas.length > 0) {
     const prevIds = new Set(prevTarjetas.map(p => p.id));
     const storedTarjetas = md.tarjetas || [];
 
-    // Carried over from prev month — prev.saldo already = saldo restante from last month
     const carried = prevTarjetas
       .filter(prev => !removed.has(prev.id))
       .map(prev => {
-      const existing = storedTarjetas.find(t => t.id === prev.id);
-      if (existing) {
-        const base = existing.saldoOverride !== undefined ? existing.saldoOverride : prev.saldo;
-        const itemsTotal = (existing.cargoItems || []).reduce((s, ci) => s + (ci.amount || 0), 0);
-        return { ...existing, saldoBase: base, saldo: base + itemsTotal, cargo: existing.cargo || 0 };
-      }
-      return { ...prev, cargo: 0, cargoItems: [] };
-    }).filter(t => (t.saldoOverride !== undefined ? t.saldoOverride : t.saldo) > 0);
+        const existing = storedTarjetas.find(t => t.id === prev.id);
+        if (existing) {
+          const base = existing.saldoOverride !== undefined ? existing.saldoOverride : prev.saldo;
+          const itemsTotal = (existing.cargoItems || []).reduce((s, ci) => s + (ci.amount || 0), 0);
+          return { ...existing, saldoBase: base, saldo: base + itemsTotal, cargo: existing.cargo || 0 };
+        }
+        return { ...prev, cargo: 0, cargoItems: [] };
+      }).filter(t => (t.saldoOverride !== undefined ? t.saldoOverride : t.saldo) > 0);
 
-    // New tarjetas created this month (not in any previous month)
     const brandNew = storedTarjetas.filter(t => !prevIds.has(t.id) && !removed.has(t.id));
-
-    md.tarjetas = [...carried, ...brandNew];
+    computedTarjetas = [...carried, ...brandNew];
   } else {
-    // No previous months at all — everything in this month is brand new
-    // Keep md.tarjetas as-is (user's own entries), just ensure saldo is set from saldoOverride
-    md.tarjetas = (md.tarjetas || []).map(t => {
+    computedTarjetas = (md.tarjetas || []).map(t => {
       const base = t.saldoOverride !== undefined ? t.saldoOverride : (t.saldo || 0);
       const itemsTotal = (t.cargoItems || []).reduce((s, ci) => s + (ci.amount || 0), 0);
       return { ...t, saldoBase: base, saldo: base + itemsTotal };
     });
   }
 
-  return md;
+  // Return a view object — tarjetas is computed; everything else is a live reference to md.
+  // IMPORTANT: never assign this back to state.months[key]; it is read-only for rendering.
+  return { ...md, tarjetas: computedTarjetas };
 }
 
 function getPrevMonthTarjetas(key) {
@@ -2001,15 +2003,25 @@ function closeDayPickerDirect() {
 }
 
 // ── Cargo Items Modal ──
+// Helper: get the raw stored tarjeta object (writable), never the computed view
+function getRawStoredTarjeta(key, id) {
+  if (!state.months[key]) return null;
+  return (state.months[key].tarjetas || []).find(t => t.id === id) || null;
+}
+
 function openCargoItems(tarjetaId) {
   _cargoModalTarjetaId = tarjetaId;
-  const md = getMonthData(currentKey());
-  const t = md.tarjetas.find(x => x.id === tarjetaId);
-  if (!t) return;
-  document.getElementById('modal-cargo-title').textContent = `💳 ${t.name} — En qué gasté`;
-  const base = t.saldoBase !== undefined ? t.saldoBase : (t.saldo || 0);
+  const key = currentKey();
+  // Use computed view for saldoBase (it has the correctly derived base from prev month)
+  const md = getMonthData(key);
+  const tView = md.tarjetas.find(x => x.id === tarjetaId);
+  if (!tView) return;
+  document.getElementById('modal-cargo-title').textContent = `💳 ${tView.name} — En qué gasté`;
+  const base = tView.saldoBase !== undefined ? tView.saldoBase : (tView.saldo || 0);
   document.getElementById('modal-saldo-base-val').textContent = fmt(base);
-  renderCargoItemsList(t.cargoItems||[]);
+  // Use raw stored record for the editable cargoItems list
+  const tRaw = getRawStoredTarjeta(key, tarjetaId);
+  renderCargoItemsList(tRaw ? (tRaw.cargoItems || []) : []);
   document.getElementById('modal-cargo-items').classList.add('show');
 }
 
@@ -2027,8 +2039,8 @@ function renderCargoItemsList(items) {
 }
 
 function updateCargoItem(i, field, value) {
-  const md = getMonthData(currentKey());
-  const t = md.tarjetas.find(x => x.id === _cargoModalTarjetaId);
+  const key = currentKey();
+  const t = getRawStoredTarjeta(key, _cargoModalTarjetaId);
   if (!t) return;
   if (!t.cargoItems) t.cargoItems = [];
   if (!t.cargoItems[i]) t.cargoItems[i] = {};
@@ -2038,8 +2050,8 @@ function updateCargoItem(i, field, value) {
 }
 
 function deleteCargoItem(i) {
-  const md = getMonthData(currentKey());
-  const t = md.tarjetas.find(x => x.id === _cargoModalTarjetaId);
+  const key = currentKey();
+  const t = getRawStoredTarjeta(key, _cargoModalTarjetaId);
   if (!t || !t.cargoItems) return;
   t.cargoItems.splice(i, 1);
   renderCargoItemsList(t.cargoItems);
@@ -2048,8 +2060,8 @@ function deleteCargoItem(i) {
 }
 
 function addCargoItem() {
-  const md = getMonthData(currentKey());
-  const t = md.tarjetas.find(x => x.id === _cargoModalTarjetaId);
+  const key = currentKey();
+  const t = getRawStoredTarjeta(key, _cargoModalTarjetaId);
   if (!t) return;
   if (!t.cargoItems) t.cargoItems = [];
   t.cargoItems.push({ name: '', amount: 0 });
@@ -2058,29 +2070,31 @@ function addCargoItem() {
 }
 
 function updateCargoTotal() {
-  const md = getMonthData(currentKey());
-  const t = md.tarjetas.find(x => x.id === _cargoModalTarjetaId);
-  const items = t ? (t.cargoItems||[]) : [];
-  const itemsSum = items.reduce((s,ci)=>s+(ci.amount||0),0);
-  const base = t ? (t.saldoBase !== undefined ? t.saldoBase : (t.saldo || 0)) : 0;
-  if (t && t.saldoBase === undefined) t.saldoBase = base;
+  const key = currentKey();
+  // Use computed view for reading the current saldoBase (display purposes)
+  const md = getMonthData(key);
+  const tView = md.tarjetas.find(x => x.id === _cargoModalTarjetaId);
+  // Write cargoItems sum back to the raw stored record only
+  const tRaw = getRawStoredTarjeta(key, _cargoModalTarjetaId);
+  const items = tRaw ? (tRaw.cargoItems || []) : [];
+  const itemsSum = items.reduce((s, ci) => s + (ci.amount || 0), 0);
+  const base = tView ? (tView.saldoBase !== undefined ? tView.saldoBase : (tView.saldo || 0)) : 0;
   const total = base + itemsSum;
   const el = document.getElementById('cargo-items-total-val');
   if (el) el.textContent = fmt(total);
-  if (t) {
-    t.saldo = total;
-    saveState();
-  }
+  // Do NOT write computed saldo back into stored tarjeta — saldo is always re-derived on load
+  saveState();
 }
 
 function saveCargoItems() {
-  const md = getMonthData(currentKey());
-  const t = md.tarjetas.find(x => x.id === _cargoModalTarjetaId);
-  if (t) {
-    const itemsTotal = (t.cargoItems||[]).reduce((s,ci)=>s+(ci.amount||0),0);
-    const base = t.saldoBase !== undefined ? t.saldoBase : (t.saldo - itemsTotal) || 0;
-    if (t.saldoBase === undefined) t.saldoBase = base;
-    t.saldo = base + itemsTotal;
+  // cargoItems are already persisted incrementally by updateCargoItem/addCargoItem/deleteCargoItem.
+  // We only need to ensure the raw stored record is clean (no leaked computed saldo).
+  const key = currentKey();
+  const tRaw = getRawStoredTarjeta(key, _cargoModalTarjetaId);
+  if (tRaw) {
+    // Remove any accidentally leaked computed fields from stored record
+    delete tRaw.saldoBase;
+    delete tRaw.saldo; // saldo is always re-derived; only saldoOverride may be stored if user set it
   }
   saveState();
   closeModal('modal-cargo-items');
@@ -2110,14 +2124,14 @@ function blurTarjetaInput(el, id, field) {
   el.value = fmtNum(val);
   autoSizeTarjetaInput(el);
   if (field === 'saldo') {
-    // User is manually overriding the saldo for this month
-    const md = getMonthData(currentKey());
-    const t = md.tarjetas.find(x => x.id === id);
-    if (t) {
-      t.saldoOverride = val; // persist as explicit override
-      t.saldoBase = val;
-      const itemsTotal = (t.cargoItems||[]).reduce((s,ci)=>s+(ci.amount||0),0);
-      t.saldo = val + itemsTotal;
+    // User is manually overriding the saldo for this month — persist as saldoOverride only
+    const key = currentKey();
+    const tRaw = getRawStoredTarjeta(key, id);
+    if (tRaw) {
+      tRaw.saldoOverride = val;
+      // Remove computed fields that may have leaked into storage before this fix
+      delete tRaw.saldo;
+      delete tRaw.saldoBase;
       saveState();
       renderAll();
     }
@@ -2127,8 +2141,10 @@ function blurTarjetaInput(el, id, field) {
 }
 function updateTarjeta(id, field, value) {
   const key = currentKey();
-  const md = getMonthData(key);
-  const t = md.tarjetas.find(x => x.id === id);
+  // Write directly to the raw stored tarjetas, never to the computed view from getMonthData
+  if (!state.months[key]) return;
+  const stored = state.months[key].tarjetas || [];
+  const t = stored.find(x => x.id === id);
   if (!t) return;
   t[field] = value;
   saveState();
@@ -2136,18 +2152,21 @@ function updateTarjeta(id, field, value) {
 }
 function addTarjeta() {
   const key = currentKey();
-  const md = getMonthData(key);
-  md.tarjetas.push({ id: uid(), name: 'Nueva tarjeta', saldo: 0, saldoBase: 0, saldoOverride: 0, cargo: 0, fechaCorte: '', cargoItems: [] });
+  // Ensure month exists
+  getMonthData(key);
+  if (!state.months[key].tarjetas) state.months[key].tarjetas = [];
+  state.months[key].tarjetas.push({ id: uid(), name: 'Nueva tarjeta', saldoOverride: 0, cargo: 0, fechaCorte: '', cargoItems: [] });
   saveState();
   renderAll();
 }
 function removeTarjeta(id) {
   const key = currentKey();
-  const md = getMonthData(key);
+  if (!state.months[key]) return;
+  const md = state.months[key];
   // Always allow deletion — store as explicit removal for this month
   if (!md._removedTarjetas) md._removedTarjetas = [];
   if (!md._removedTarjetas.includes(id)) md._removedTarjetas.push(id);
-  md.tarjetas = md.tarjetas.filter(t => t.id !== id);
+  md.tarjetas = (md.tarjetas || []).filter(t => t.id !== id);
   saveState();
   renderAll();
 }
