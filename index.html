@@ -1025,44 +1025,52 @@ function blurIngresoInput(el, id) {
   updateIngreso(id, 'amount', val);
 }
 function updateIngreso(id, field, value) {
-  const md = getMonthData(currentKey());
-  if (!md.ingresos) md.ingresos = [];
-  const ing = md.ingresos.find(i => i.id === id);
+  const key = currentKey();
+  getMonthData(key); // ensure month exists
+  const raw = state.months[key];
+  if (!raw.ingresos) raw.ingresos = [];
+  const ing = raw.ingresos.find(i => i.id === id);
   if (!ing) return;
   if (field === 'amount') ing.amount = parseFloat(value) || 0;
   else ing[field] = value;
-  syncLegacyIngresos(md);
+  syncLegacyIngresos(raw);
   saveState();
   renderAll();
   showUpdatedBadge();
 }
 function addIngreso() {
-  const md = getMonthData(currentKey());
-  if (!md.ingresos) md.ingresos = [];
+  const key = currentKey();
+  getMonthData(key); // ensure month exists
+  const raw = state.months[key];
+  if (!raw.ingresos) raw.ingresos = [];
   const defaults = ['Nómina', 'Vales despensa', 'Ingreso extra'];
-  const name = defaults[md.ingresos.length] || 'Ingreso';
-  md.ingresos.push({ id: uid(), name, amount: 0 });
+  const name = defaults[raw.ingresos.length] || 'Ingreso';
+  raw.ingresos.push({ id: uid(), name, amount: 0 });
   saveState();
   renderAll();
   showUpdatedBadge();
 }
 function removeIngreso(id) {
-  const md = getMonthData(currentKey());
-  if (!md.ingresos) return;
-  md.ingresos = md.ingresos.filter(i => i.id !== id);
-  syncLegacyIngresos(md);
+  const key = currentKey();
+  getMonthData(key); // ensure month exists
+  const raw = state.months[key];
+  if (!raw.ingresos) return;
+  raw.ingresos = raw.ingresos.filter(i => i.id !== id);
+  syncLegacyIngresos(raw);
   saveState();
   renderAll();
   showUpdatedBadge();
 }
 function moveIngreso(id, dir) {
-  const md = getMonthData(currentKey());
-  if (!md.ingresos) return;
-  const idx = md.ingresos.findIndex(i => i.id === id);
+  const key = currentKey();
+  getMonthData(key); // ensure month exists
+  const raw = state.months[key];
+  if (!raw.ingresos) return;
+  const idx = raw.ingresos.findIndex(i => i.id === id);
   if (idx < 0) return;
   const ni = idx + dir;
-  if (ni < 0 || ni >= md.ingresos.length) return;
-  [md.ingresos[idx], md.ingresos[ni]] = [md.ingresos[ni], md.ingresos[idx]];
+  if (ni < 0 || ni >= raw.ingresos.length) return;
+  [raw.ingresos[idx], raw.ingresos[ni]] = [raw.ingresos[ni], raw.ingresos[idx]];
   saveState(); renderAll(); showUpdatedBadge();
 }
 function syncLegacyIngresos(md) {
@@ -1747,13 +1755,13 @@ function openEditGasto(id, key) {
 function saveEditGasto() {
   const id = document.getElementById('edit-gasto-id').value;
   const key = currentKey();
-  const md = getMonthData(key);
+  getMonthData(key); // ensure month exists
+  const raw = state.months[key];
   const name = document.getElementById('edit-name').value.trim();
   const amount = parseFloat(document.getElementById('edit-amount').value);
   const icon = document.getElementById('edit-icon').value.trim() || '💰';
   const fuente = document.getElementById('edit-fuente').value || '';
-  // Determinar type según el ingreso seleccionado (para compatibilidad legacy)
-  const ingresos = md.ingresos || [];
+  const ingresos = raw.ingresos || [];
   const ingreso = ingresos.find(i => i.id === fuente);
   const type = ingreso
     ? (ingreso.name.toLowerCase().includes('vale') ? 'vales' : 'fijo')
@@ -1761,9 +1769,10 @@ function saveEditGasto() {
 
   if (!id) {
     if (!name || isNaN(amount) || amount <= 0) return alert('Llena nombre y monto');
-    md.expenses.push({ id: uid(), name, icon, amount, type, fuente });
+    if (!raw.expenses) raw.expenses = [];
+    raw.expenses.push({ id: uid(), name, icon, amount, type, fuente });
   } else {
-    const e = md.expenses.find(x => x.id === id);
+    const e = (raw.expenses || []).find(x => x.id === id);
     if (!e) return;
     e.name = name || e.name;
     e.amount = isNaN(amount) ? e.amount : amount;
@@ -1779,20 +1788,23 @@ function saveEditGasto() {
 
 function deleteExpense(id, key) {
   if (!confirm('¿Eliminar este gasto?')) return;
-  const md = getMonthData(key);
-  md.expenses = md.expenses.filter(e => e.id !== id);
+  getMonthData(key); // ensure month exists
+  const raw = state.months[key];
+  raw.expenses = (raw.expenses || []).filter(e => e.id !== id);
   saveState();
   renderAll();
   showUpdatedBadge();
 }
 
 function moveExpense(id, dir) {
-  const md = getMonthData(currentKey());
-  const idx = md.expenses.findIndex(e => e.id === id);
+  const key = currentKey();
+  getMonthData(key); // ensure month exists
+  const raw = state.months[key];
+  const idx = (raw.expenses || []).findIndex(e => e.id === id);
   if (idx < 0) return;
   const ni = idx + dir;
-  if (ni < 0 || ni >= md.expenses.length) return;
-  [md.expenses[idx], md.expenses[ni]] = [md.expenses[ni], md.expenses[idx]];
+  if (ni < 0 || ni >= raw.expenses.length) return;
+  [raw.expenses[idx], raw.expenses[ni]] = [raw.expenses[ni], raw.expenses[idx]];
   saveState(); renderAll(); showUpdatedBadge();
 }
 
@@ -2550,19 +2562,20 @@ function openAddSalida(editId) {
 
 function guardarSalida() {
   const key = currentKey();
-  const md = getMonthData(key);
+  getMonthData(key); // ensure month exists
+  const raw = state.months[key];
   const nombre = document.getElementById('salida-modal-nombre').value.trim();
   const amount = parseFloat(document.getElementById('salida-modal-monto').value) || 0;
   const icon = document.getElementById('salida-modal-icon').value.trim() || '💸';
   const editId = document.getElementById('salida-edit-id').value;
   if (!nombre) return alert('Escribe un nombre para la salida');
   if (amount <= 0) return alert('Ingresa un monto válido');
-  if (!md.expenses) md.expenses = [];
+  if (!raw.expenses) raw.expenses = [];
   if (editId) {
-    const e = md.expenses.find(x => x.id === editId);
+    const e = raw.expenses.find(x => x.id === editId);
     if (e) { e.name = nombre; e.amount = amount; e.icon = icon; e.fuente = '__AHORRO__'; }
   } else {
-    md.expenses.push({ id: uid(), name: nombre, icon, amount, type: 'fijo', fuente: '__AHORRO__' });
+    raw.expenses.push({ id: uid(), name: nombre, icon, amount, type: 'fijo', fuente: '__AHORRO__' });
   }
   saveState();
   closeModal('modal-add-salida');
