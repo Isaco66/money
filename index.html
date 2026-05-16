@@ -883,9 +883,9 @@ function renderAjustes() {
       <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(0,0,0,0.05)">
         <div style="flex:1;min-width:0">
           <div style="font-size:0.85rem;font-weight:700">${MONTHS_ES[m-1]} ${y} ${tieneAhorro?'🐷':''}</div>
-          <div style="font-size:0.65rem;color:var(--muted);margin-top:2px">Ingresos ${fmt(totalIngresos)} · Gastos ${fmt(totalGastos)}</div>
+          <div style="font-size:0.65rem;color:var(--muted);margin-top:2px">Ingresos ${fmtPos(totalIngresos)} · Gastos ${fmtNeg(totalGastos)}</div>
         </div>
-        <div style="font-size:0.85rem;font-weight:800;color:${libre>=0?'var(--green)':'var(--red)'};flex-shrink:0">${libre>=0?'+':''}${fmt(libre)}</div>
+        <div style="font-size:0.85rem;font-weight:800;color:${libre>=0?'var(--green)':'var(--red)'};flex-shrink:0">${libre>=0?fmtPos(libre):fmtNeg(Math.abs(libre))}</div>
       </div>`;
   }).join('') + `<div style="padding-top:10px;border-top:2px solid rgba(0,0,0,0.05);display:flex;justify-content:space-between;align-items:center;margin-top:2px">
     <span style="font-size:0.72rem;font-weight:700;color:var(--muted)">${keys.length} ${keys.length===1?'mes':'meses'} registrados</span>
@@ -938,6 +938,9 @@ function fmtNum(n) {
   if (!n || isNaN(n)) return '0';
   return Number(n).toLocaleString('es-MX', { minimumFractionDigits: n % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 });
 }
+// Signed helpers for list items — ingreso/libre/positivo → "+$X", gasto/negativo → "-$X"
+function fmtPos(n) { return '+' + fmt(n); }
+function fmtNeg(n) { return '-' + fmt(n); }
 function closeModal(id) { document.getElementById(id).classList.remove('show'); }
 function toast(msg) {
   const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg;
@@ -1208,15 +1211,16 @@ function calcAndRender(md, key) {
     const mkExpRow = (icon, name, amount, color, extraHtml='') =>
       `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0 6px 8px;border-bottom:1px solid rgba(0,0,0,0.04)">
         <span style="font-size:0.82rem;display:flex;align-items:center;gap:5px">${icon} ${name}${extraHtml}</span>
-        <span style="font-size:0.8rem;font-weight:600;color:${color};flex-shrink:0">${fmt(amount)}</span>
+        <span style="font-size:0.8rem;font-weight:600;color:${color};flex-shrink:0">${color==='var(--green)'?fmtPos(amount):fmtNeg(amount)}</span>
       </div>`;
 
     const mkLibreRow = (libreVal) => {
       const color = libreVal >= 0 ? 'var(--green)' : 'var(--red)';
       const label = libreVal >= 0 ? 'Libre' : 'Déficit';
+      const sign = libreVal >= 0 ? '+' : '-';
       return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 8px;margin-top:4px;background:${libreVal>=0?'rgba(52,199,89,0.07)':'rgba(255,59,48,0.07)'};border-radius:8px">
         <span style="font-size:0.75rem;font-weight:700;color:${color}">${label}</span>
-        <span style="font-size:0.85rem;font-weight:800;color:${color}">${fmt(libreVal)}</span>
+        <span style="font-size:0.85rem;font-weight:800;color:${color}">${sign}${fmt(Math.abs(libreVal))}</span>
       </div>`;
     };
 
@@ -1257,7 +1261,7 @@ function calcAndRender(md, key) {
         html += `<div style="margin-bottom:12px;padding-bottom:4px">
           <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0 4px">
             <span style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted)">💰 ${ing.name}</span>
-            <span style="font-size:0.75rem;font-weight:700;color:var(--green)">${fmt(ing.amount)}</span>
+            <span style="font-size:0.75rem;font-weight:700;color:var(--green)">${fmtPos(ing.amount)}</span>
           </div>`;
 
         gastos.forEach(e => { html += mkExpRow(e.icon||'💰', e.name, e.amount, 'var(--red)'); });
@@ -1303,7 +1307,7 @@ function calcAndRender(md, key) {
           });
           html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 8px;margin-top:4px;background:rgba(255,59,48,0.06);border-radius:8px">
             <span style="font-size:0.75rem;font-weight:700;color:var(--red)">Gastado del ahorro</span>
-            <span style="font-size:0.85rem;font-weight:800;color:var(--red)">${fmt(totalGastosAhorro)}</span>
+            <span style="font-size:0.85rem;font-weight:800;color:var(--red)">${fmtNeg(totalGastosAhorro)}</span>
           </div>`;
         }
         html += `</div>`;
@@ -1558,7 +1562,7 @@ function renderGastos(md, key) {
                   <button onclick="deleteExpense('${it.id}','${key}')" style="background:none;border:none;color:var(--red);cursor:pointer;padding:3px;font-size:0.75rem;opacity:0.5;flex-shrink:0;line-height:1">✕</button>
                 ` : ''}
                 ${it.isTarjeta ? `<span style="font-size:0.55rem;background:rgba(0,122,255,0.1);color:var(--blue);padding:2px 6px;border-radius:99px;flex-shrink:0;font-weight:700">tarjeta</span>` : ''}
-                <span style="font-size:0.85rem;font-weight:700;color:${it.isTarjeta?'var(--blue)':color};flex-shrink:0;min-width:52px;text-align:right">${fmt(it.amount)}</span>
+                <span style="font-size:0.85rem;font-weight:700;color:${it.isTarjeta?'var(--blue)':color};flex-shrink:0;min-width:52px;text-align:right">${it.isTarjeta?fmtNeg(it.amount):fmtNeg(it.amount)}</span>
               </div>`).join('')}
           </div>`
         : '';
@@ -1579,7 +1583,7 @@ function renderGastos(md, key) {
     resumenEl.innerHTML = rows.filter(r => !r.esAhorro).map(r => mkBar(r, grandTotal)).join('') +
       `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0 2px;border-top:2px solid rgba(0,0,0,0.07);margin-top:2px">
         <span style="font-size:0.82rem;font-weight:700;color:var(--text)">Total gastado</span>
-        <span style="font-size:0.95rem;font-weight:800;color:var(--red);font-variant-numeric:tabular-nums">${fmt(grandTotal)}</span>
+        <span style="font-size:0.95rem;font-weight:800;color:var(--red);font-variant-numeric:tabular-nums">${fmtNeg(grandTotal)}</span>
       </div>`;
   }
 
@@ -1913,7 +1917,7 @@ function renderDeuda(md) {
           ${items.slice(0,2).map(ci=>`
             <div style="display:flex;justify-content:space-between;align-items:center;font-size:0.75rem;padding:2px 0">
               <span style="color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60%">${ci.name||'Sin nombre'}</span>
-              <span style="font-weight:600;color:var(--blue);flex-shrink:0">${fmt(ci.amount||0)}</span>
+              <span style="font-weight:600;color:var(--blue);flex-shrink:0">${fmtNeg(ci.amount||0)}</span>
             </div>`).join('')}
           ${items.length > 2 ? `<div style="font-size:0.65rem;color:var(--muted);margin-top:3px">+${items.length-2} más · total ${fmt(itemsTotal)}</div>` : ''}
         </div>` : ''}
@@ -2297,15 +2301,15 @@ function renderHistorialDetail() {
       </div>
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center;margin-bottom:${depositosHtml||gastosAhorroHtml?'12px':'0'}">
         <div style="background:rgba(52,199,89,0.08);border-radius:10px;padding:8px 4px">
-          <div style="font-size:0.92rem;font-weight:800;color:var(--green)">${fmt(ahorroAcumulado)}</div>
+          <div style="font-size:0.92rem;font-weight:800;color:var(--green)">${fmtPos(ahorroAcumulado)}</div>
           <div style="font-size:0.55rem;color:var(--muted);margin-top:2px;text-transform:uppercase">Guardado</div>
         </div>
         <div style="background:rgba(255,59,48,0.06);border-radius:10px;padding:8px 4px">
-          <div style="font-size:0.92rem;font-weight:800;color:var(--red)">${fmt(gastadoAcumulado)}</div>
+          <div style="font-size:0.92rem;font-weight:800;color:var(--red)">${fmtNeg(gastadoAcumulado)}</div>
           <div style="font-size:0.55rem;color:var(--muted);margin-top:2px;text-transform:uppercase">Gastado</div>
         </div>
         <div style="background:rgba(0,0,0,0.04);border-radius:10px;padding:8px 4px">
-          <div style="font-size:0.92rem;font-weight:800;color:${netoAhorro>=0?'var(--green)':'var(--red)'}">${fmt(netoAhorro)}</div>
+          <div style="font-size:0.92rem;font-weight:800;color:${netoAhorro>=0?'var(--green)':'var(--red)'}">${netoAhorro>=0?fmtPos(netoAhorro):fmtNeg(Math.abs(netoAhorro))}</div>
           <div style="font-size:0.55rem;color:var(--muted);margin-top:2px;text-transform:uppercase">Saldo</div>
         </div>
       </div>
@@ -2343,15 +2347,15 @@ function renderHistorialDetail() {
 
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px">
       <div style="background:#fff;border:1px solid rgba(0,0,0,0.06);border-radius:14px;padding:12px 8px;text-align:center;box-shadow:0 1px 6px rgba(0,0,0,0.04)">
-        <div style="font-size:0.95rem;font-weight:800;color:var(--green)">${fmt(totalIngresos)}</div>
+        <div style="font-size:0.95rem;font-weight:800;color:var(--green)">${fmtPos(totalIngresos)}</div>
         <div style="font-size:0.58rem;color:var(--muted);margin-top:3px;text-transform:uppercase;letter-spacing:0.05em">Ingresos</div>
       </div>
       <div style="background:#fff;border:1px solid rgba(0,0,0,0.06);border-radius:14px;padding:12px 8px;text-align:center;box-shadow:0 1px 6px rgba(0,0,0,0.04)">
-        <div style="font-size:0.95rem;font-weight:800;color:var(--red)">${fmt(hdTotalGastos)}</div>
+        <div style="font-size:0.95rem;font-weight:800;color:var(--red)">${fmtNeg(hdTotalGastos)}</div>
         <div style="font-size:0.58rem;color:var(--muted);margin-top:3px;text-transform:uppercase;letter-spacing:0.05em">Gastos</div>
       </div>
       <div style="background:#fff;border:1px solid rgba(0,0,0,0.06);border-radius:14px;padding:12px 8px;text-align:center;box-shadow:0 1px 6px rgba(0,0,0,0.04)">
-        <div style="font-size:0.95rem;font-weight:800;color:${hdLibre>=0?'var(--green)':'var(--red)'}">${fmt(hdLibre)}</div>
+        <div style="font-size:0.95rem;font-weight:800;color:${hdLibre>=0?'var(--green)':'var(--red)'}">${hdLibre>=0?fmtPos(hdLibre):fmtNeg(Math.abs(hdLibre))}</div>
         <div style="font-size:0.58rem;color:var(--muted);margin-top:3px;text-transform:uppercase;letter-spacing:0.05em">Libre</div>
       </div>
     </div>
@@ -2502,7 +2506,7 @@ function renderDepositosList(key) {
     </div>`).join('') +
     `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0 2px;border-top:2px solid rgba(52,199,89,0.15);margin-top:4px">
       <span style="font-size:0.75rem;font-weight:700;color:var(--green)">TOTAL DEPOSITADO</span>
-      <span style="font-size:1rem;font-weight:800;color:var(--green)">${fmt(total)}</span>
+      <span style="font-size:1rem;font-weight:800;color:var(--green)">${fmtPos(total)}</span>
     </div>`;
 }
 
@@ -2698,15 +2702,15 @@ function renderAhorroDesgloseDetail() {
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;margin-bottom:${depositosHtml?'10px':'0'}">
         <div>
-          <div style="font-size:0.95rem;font-weight:800;color:var(--green)">${fmt(ahorroBase)}</div>
+          <div style="font-size:0.95rem;font-weight:800;color:var(--green)">${fmtPos(ahorroBase)}</div>
           <div style="font-size:0.58rem;color:var(--muted);margin-top:2px;text-transform:uppercase">Guardado</div>
         </div>
         <div>
-          <div style="font-size:0.95rem;font-weight:800;color:var(--red)">${fmt(totalGastado)}</div>
+          <div style="font-size:0.95rem;font-weight:800;color:var(--red)">${fmtNeg(totalGastado)}</div>
           <div style="font-size:0.58rem;color:var(--muted);margin-top:2px;text-transform:uppercase">Gastado</div>
         </div>
         <div>
-          <div style="font-size:0.95rem;font-weight:800;color:${neto>=0?'var(--green)':'var(--red)'}">${fmt(neto)}</div>
+          <div style="font-size:0.95rem;font-weight:800;color:${neto>=0?'var(--green)':'var(--red)'}">${neto>=0?fmtPos(neto):fmtNeg(Math.abs(neto))}</div>
           <div style="font-size:0.58rem;color:var(--muted);margin-top:2px;text-transform:uppercase">Neto</div>
         </div>
       </div>
