@@ -281,9 +281,6 @@ canvas{opacity:0.92;}
   <div class="block fadein">
     <div class="block-title">
       <span class="title-with-icon"><span class="ui-svg-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M8 6h11"/><path d="M8 12h11"/><path d="M8 18h11"/></svg></span>Resumen completo</span>
-      <button class="btn-outline" onclick="openDonutModal()" style="font-size:0.7rem;padding:5px 10px;display:flex;align-items:center;gap:4px">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M12 3a9 9 0 1 0 9 9h-9z"/><path d="M12 3v9h9"/></svg>Gráfica
-      </button>
     </div>
     <div id="home-desglose"></div>
   </div>
@@ -982,13 +979,48 @@ function showUpdatedBadge() {
   window.__updTimer = setTimeout(()=>b.classList.remove('show'), 1200);
 }
 
-function openDonutModal() {
+function openDonutModal(ingId) {
   document.getElementById('modal-donut').classList.add('show');
-  // Redraw donut after modal opens (canvas needs to be visible)
   const md = getMonthData(currentKey());
-  const nomina = md.nomina || 0;
-  const vales = md.vales || 0;
-  setTimeout(() => drawDonut(md.expenses, nomina, vales, md), 50);
+  setTimeout(() => drawDonutForIngreso(md, ingId), 50);
+}
+
+function drawDonutForIngreso(md, ingId) {
+  const ingresos = md.ingresos || [];
+  const tarjetas = md.tarjetas || [];
+  const primerNoVales = ingresos.find(i => !i.name.toLowerCase().includes('vale'));
+
+  let ing, gastos, tarjetasAqui, ahorroMes, titulo, ingresoTotal;
+
+  // Calculate ahorro total
+  const depositos = md.depositos || [];
+  ahorroMes = depositos.reduce((s,d)=>s+(d.amount||0),0);
+
+  if (ingId && ingresos.length > 0) {
+    ing = ingresos.find(i => i.id === ingId);
+    if (!ing) return;
+    gastos = md.expenses.filter(e => e.fuente === ing.id && e.fuente !== '__AHORRO__');
+    const esPrimero = ing === primerNoVales;
+    tarjetasAqui = esPrimero ? tarjetas.filter(t=>(t.cargo||0)>0) : [];
+    const ahorroDeEste = esPrimero ? ahorroMes : 0;
+    titulo = ing.name;
+    ingresoTotal = ing.amount || 0;
+
+    const categories = [];
+    gastos.forEach(e => { if(e.amount>0) categories.push({label:e.name, amount:e.amount, icon:e.icon||'💰'}); });
+    tarjetasAqui.forEach(t => { if((t.cargo||0)>0) categories.push({label:t.name, amount:t.cargo, icon:'💳'}); });
+    if (ahorroDeEste > 0) categories.push({label:'Ahorro del mes', amount:ahorroDeEste, icon:'🐷'});
+    const totalGastos = categories.reduce((s,c)=>s+c.amount,0);
+    const libre = Math.max(0, ingresoTotal - totalGastos);
+    if (libre > 0) categories.push({label:'Libre', amount:libre, _libre:true, icon:'✅'});
+
+    drawDonutWithCategories(categories, titulo, totalGastos);
+  } else {
+    // fallback legacy
+    const nomina = md.nomina || 0;
+    const vales = md.vales || 0;
+    drawDonut(md.expenses, nomina, vales, md);
+  }
 }
 
 // Close modal on overlay click
@@ -1043,7 +1075,7 @@ function renderIngresos(md) {
 
     const addSubBtn = `
       <div style="padding:8px 0 ${hasSubs?'4px':'0'}">
-        <button onclick="addSubIngreso('${ing.id}')"
+        <button onclick="event.stopPropagation();addSubIngreso('${ing.id}')"
           style="background:none;border:1px dashed rgba(0,0,0,0.12);color:var(--muted);border-radius:8px;padding:5px 10px;font-size:0.72rem;font-weight:600;cursor:pointer;width:100%">
           + Sub-ingreso
         </button>
@@ -1154,7 +1186,20 @@ function addSubIngreso(ingresoId) {
   ing.amount = ing.subItems.reduce((s,si)=>s+(si.amount||0),0);
   syncLegacyIngresos(raw);
   saveState();
+  // Save open panels before re-render
+  const openPanelsAdd = [...document.querySelectorAll('[id^="sub-ing-"]')]
+    .filter(el => el.style.display !== 'none')
+    .map(el => el.id.replace('sub-ing-', ''));
+  // Also force-include the one being added to
+  if (!openPanelsAdd.includes(ingresoId)) openPanelsAdd.push(ingresoId);
   renderAll();
+  // Restore open panels
+  openPanelsAdd.forEach(id => {
+    const panel = document.getElementById('sub-ing-' + id);
+    const arrow = document.getElementById('ing-arrow-' + id);
+    if (panel) panel.style.display = 'block';
+    if (arrow) arrow.textContent = '▾';
+  });
   showUpdatedBadge();
 }
 function updateSubIngreso(ingresoId, subId, field, value) {
@@ -1186,7 +1231,18 @@ function removeSubIngreso(ingresoId, subId) {
   ing.amount = ing.subItems.reduce((s,si)=>s+(si.amount||0),0);
   syncLegacyIngresos(raw);
   saveState();
+  // Save open panels before re-render
+  const openPanels = [...document.querySelectorAll('[id^="sub-ing-"]')]
+    .filter(el => el.style.display !== 'none')
+    .map(el => el.id.replace('sub-ing-', ''));
   renderAll();
+  // Restore open panels
+  openPanels.forEach(id => {
+    const panel = document.getElementById('sub-ing-' + id);
+    const arrow = document.getElementById('ing-arrow-' + id);
+    if (panel) panel.style.display = 'block';
+    if (arrow) arrow.textContent = '▾';
+  });
   showUpdatedBadge();
 }
 function toggleSubIngresos(ingresoId) {
@@ -1327,7 +1383,7 @@ function calcAndRender(md, key) {
   bars.innerHTML = sorted.map(e => {
     const total = totalIngresos > 0 ? totalIngresos : nomina;
     const pct = total > 0 ? Math.min((e.amount/total)*100,100) : 0;
-    const color = e.type === 'variable' ? 'var(--yellow)' : 'var(--blue)';
+    const color = 'var(--red)';
     return `<div class="bar-row-s">
       <div class="bar-label-s">${e.icon||'💰'} ${e.name}</div>
       <div class="bar-track-s"><div class="bar-fill-s" style="width:${pct}%;background:${color}"></div></div>
@@ -1380,7 +1436,7 @@ function calcAndRender(md, key) {
       if (allExp.length > 0) {
         allExp.forEach(e => { html += mkExpRow(e.icon||'💰', e.name, e.amount, 'var(--red)'); });
         tarjetas.filter(t=>(t.cargo||0)>0).forEach(t => {
-          html += mkExpRow('💳', t.name, t.cargo, 'var(--blue)', ' <span style="font-size:0.55rem;background:rgba(0,122,255,0.1);color:var(--blue);padding:1px 5px;border-radius:99px">tarjeta</span>');
+          html += mkExpRow('💳', t.name, t.cargo, 'var(--red)', '');
         });
       }
       if (ahorroMes > 0) {
@@ -1407,14 +1463,15 @@ function calcAndRender(md, key) {
         const libreIng = (ing.amount||0) - totalGastosIng;
 
         html += `<div style="margin-bottom:12px;padding-bottom:4px">
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0 4px">
-            <span style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted)">💰 ${ing.name}</span>
+          <div style="display:flex;align-items:center;padding:8px 0 4px;gap:6px">
+            <span style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);flex:1">💰 ${ing.name}</span>
             <span style="font-size:0.75rem;font-weight:700;color:var(--green)">${fmtPos(ing.amount)}</span>
+            <button onclick="openDonutModal('${ing.id}')" style="background:none;border:1px solid rgba(0,0,0,0.12);color:var(--muted);border-radius:8px;padding:3px 7px;font-size:0.65rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:3px;flex-shrink:0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11"><path d="M12 3a9 9 0 1 0 9 9h-9z"/><path d="M12 3v9h9"/></svg>Gráfica</button>
           </div>`;
 
         gastos.forEach(e => { html += mkExpRow(e.icon||'💰', e.name, e.amount, 'var(--red)'); });
         tarjetasAqui.forEach(t => {
-          html += mkExpRow('💳', t.name, t.cargo, 'var(--blue)', ' <span style="font-size:0.55rem;background:rgba(0,122,255,0.1);color:var(--blue);padding:1px 5px;border-radius:99px">tarjeta</span>');
+          html += mkExpRow('💳', t.name, t.cargo, 'var(--red)', '');
         });
         if (ahorroDeEsteIng > 0) {
           html += mkExpRow('🐷', 'Ahorro del mes', ahorroDeEsteIng, 'var(--red)');
@@ -1482,7 +1539,7 @@ let _donutSelectedIdx = -1;
 function assignDonutColors(categories) {
   // Full palette — diverse hues spaced far apart
   const palette = [
-    '#ff3b30','#007aff','#1a7a3a','#ff9f0a','#5856d6',
+    '#ff3b30','#c0392b','#e74c3c','#ff6b6b','#ff3b30',
     '#ec4899','#14b8a6','#f97316','#6366f1','#84cc16',
     '#e11d48','#0ea5e9','#a855f7','#10b981','#fb923c'
   ];
@@ -1532,6 +1589,72 @@ function drawDonutFrame(canvas, categories, selectedIdx, total) {
     start += slice + gap;
   });
   ctx.globalAlpha = 1;
+}
+
+function drawDonutWithCategories(categories, titulo, totalGastos) {
+  const canvas = document.getElementById('donutCanvas');
+  const legend = document.getElementById('donut-legend');
+  const labelEl = document.getElementById('donut-center-label');
+  const valEl = document.getElementById('donut-center-val');
+
+  // Update modal title
+  const h3 = document.querySelector('#modal-donut h3');
+  if (h3) h3.textContent = '📊 ' + titulo;
+
+  if (categories.length === 0 || categories.reduce((s,c)=>s+c.amount,0) === 0) {
+    legend.innerHTML = '<p style="font-size:0.75rem;color:var(--muted);text-align:center;padding:10px">Sin gastos este mes</p>';
+    labelEl.textContent = '';
+    valEl.textContent = '';
+    return;
+  }
+
+  const total = categories.reduce((s,c)=>s+c.amount,0);
+
+  // Red shades for expenses, green for libre
+  const redPalette = ['#ff3b30','#c0392b','#e74c3c','#ff6b6b','#ff8a80','#d32f2f','#b71c1c','#ef5350','#e53935'];
+  let ri = 0;
+  categories.forEach(c => {
+    if (c._libre) { c.color = '#1a7a3a'; }
+    else { c.color = redPalette[ri % redPalette.length]; ri++; }
+  });
+
+  _donutCategories = categories;
+  _donutSelectedIdx = -1;
+  drawDonutFrame(canvas, categories, -1, total);
+
+  labelEl.textContent = 'Total gastos';
+  valEl.textContent = fmt(totalGastos);
+  valEl.style.color = 'var(--red)';
+
+  legend.innerHTML = categories.map((c,i) =>
+    `<div class="legend-item" style="cursor:pointer;border-radius:8px;padding:3px 6px;transition:background 0.15s;display:flex;align-items:center;gap:6px"
+      onclick="donutLegendClick(${i})" id="legend-item-${i}">
+      <div class="ldot" style="background:${c.color};width:9px;height:9px;border-radius:50%;flex-shrink:0"></div>
+      <span style="font-size:0.78rem">${c.icon||''} ${c.label}: <strong>${fmt(c.amount)}</strong></span>
+    </div>`
+  ).join('');
+
+  canvas.onclick = (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const mx = (e.clientX - rect.left) * scaleX;
+    const my = (e.clientY - rect.top) * scaleY;
+    const cx = canvas.width/2, cy = canvas.height/2;
+    const dx = mx - cx, dy = my - cy;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    const r = canvas.width * 0.285, stroke = canvas.width * 0.115;
+    if (dist < r - stroke/2 - 4 || dist > r + stroke/2 + 4) { donutSelectSlice(-1, total, totalGastos); return; }
+    let angle = Math.atan2(dy, dx);
+    if (angle < -Math.PI/2) angle += Math.PI*2;
+    const idx = _donutCategories.findIndex(c => {
+      let s = c._startAngle, en = c._endAngle;
+      if (s > en) en += Math.PI*2;
+      let a = angle < -Math.PI/2 ? angle + Math.PI*2 : angle;
+      return a >= s && a <= en;
+    });
+    donutSelectSlice(idx >= 0 ? idx : -1, total, totalGastos);
+  };
 }
 
 function drawDonut(expenses, nomina, vales, md) {
@@ -1664,9 +1787,9 @@ function renderGastos(md, key) {
         return;
       }
       const tarjetaItemsFallback = tarjetas.filter(t=>(t.cargo||0)>0).map(t=>({name:t.name,amount:t.cargo,icon:'💳',isTarjeta:true}));
-      if (totalFijo > 0) rows.push({label:'💡 Gastos fijos', amount:totalFijo, color:'var(--blue)', items:fijoList});
-      if (totalVar > 0) rows.push({label:'📈 Variables + tarjetas', amount:totalVar, color:'var(--yellow)', items:varList, tarjetaItems:tarjetaItemsFallback});
-      if (totalVales > 0) rows.push({label:'🟣 Vales despensa', amount:totalVales, color:'var(--purple)', items:valesList});
+      if (totalFijo > 0) rows.push({label:'💡 Gastos fijos', amount:totalFijo, color:'var(--red)', items:fijoList});
+      if (totalVar > 0) rows.push({label:'📈 Variables + tarjetas', amount:totalVar, color:'var(--red)', items:varList, tarjetaItems:tarjetaItemsFallback});
+      if (totalVales > 0) rows.push({label:'🟣 Vales despensa', amount:totalVales, color:'var(--red)', items:valesList});
     } else {
       const colors = ['var(--red)','var(--red)','var(--red)','var(--red)','var(--red)'];
       ingresos.forEach((ing, i) => {
@@ -1684,7 +1807,7 @@ function renderGastos(md, key) {
       }
       grandTotal += totalTarjetas;
       const tarjetaItemsArr = tarjetas.filter(t=>(t.cargo||0)>0).map(t=>({name:t.name,amount:t.cargo,icon:'💳',isTarjeta:true}));
-      if (totalTarjetas > 0) rows.push({label:'💳 Tarjetas', amount:totalTarjetas, color:'var(--yellow)', items:[], tarjetaItems:tarjetaItemsArr});
+      if (totalTarjetas > 0) rows.push({label:'💳 Tarjetas', amount:totalTarjetas, color:'var(--red)', items:[], tarjetaItems:tarjetaItemsArr});
       // Gastos del ahorro — SIEMPRE AL FINAL, sección propia verde, NO afectan grandTotal
       const gastosAhorro = md.expenses.filter(e => e.fuente === '__AHORRO__');
       const totalAhorro = gastosAhorro.reduce((s,e)=>s+(e.amount||0),0);
@@ -1709,7 +1832,7 @@ function renderGastos(md, key) {
                   <button onclick="openEditGasto('${it.id}','${key}')" style="background:none;border:none;color:var(--muted);cursor:pointer;padding:3px;font-size:0.85rem;flex-shrink:0;line-height:1">✏️</button>
                   <button onclick="deleteExpense('${it.id}','${key}')" style="background:none;border:none;color:var(--red);cursor:pointer;padding:3px;font-size:0.75rem;opacity:0.5;flex-shrink:0;line-height:1">✕</button>
                 ` : ''}
-                ${it.isTarjeta ? `<span style="font-size:0.55rem;background:rgba(0,122,255,0.1);color:var(--blue);padding:2px 6px;border-radius:99px;flex-shrink:0;font-weight:700">tarjeta</span>` : ''}
+                ${it.isTarjeta ? `<span style="font-size:0.55rem;background:rgba(0,0,0,0.07);color:var(--muted);padding:2px 6px;border-radius:99px;flex-shrink:0;font-weight:700">tarjeta</span>` : ''}
                 <span style="font-size:0.85rem;font-weight:700;color:var(--red);flex-shrink:0;min-width:52px;text-align:right">${it.isTarjeta?fmtNeg(it.amount):fmtNeg(it.amount)}</span>
               </div>`).join('')}
           </div>`
@@ -1780,13 +1903,13 @@ function renderGastos(md, key) {
           <div class="expense-item" style="background:rgba(0,122,255,0.04);border-radius:10px;padding:10px;margin-bottom:4px;border-bottom:none!important">
             <div class="expense-icon">💳</div>
             <div class="expense-info">
-              <div class="expense-name">${t.name} <span style="font-size:0.55rem;background:rgba(0,122,255,0.12);color:var(--blue);padding:1px 5px;border-radius:99px">Tarjeta</span></div>
+              <div class="expense-name">${t.name} <span style="font-size:0.55rem;background:rgba(0,0,0,0.07);color:var(--muted);padding:1px 5px;border-radius:99px">Tarjeta</span></div>
               <div class="expense-sub">Abono mes · Saldo: ${fmt(t.saldo||0)}</div>
             </div>
             <div class="expense-amount">${fmtNeg(t.cargo)}</div>
           </div>`).join('');
         const manualItems = list.map(e => expenseRow(e, key)).join('') || (linkedItems === '' ? `<p class="small-muted" style="text-align:center;padding:10px">Sin gastos variables</p>` : '');
-        const header = linkedItems ? `<div style="font-size:0.6rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--blue);margin-bottom:6px">Desde mis tarjetas</div>` : '';
+        const header = linkedItems ? `<div style="font-size:0.6rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Desde mis tarjetas</div>` : '';
         const divider = linkedItems && list.length > 0 ? `<hr class="divider"/>` : '';
         const mh = list.length > 0 ? `<div style="font-size:0.6rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Otros variables</div>` : '';
         innerHtml = header + linkedItems + (linkedItems && list.length > 0 ? divider + mh : '') + manualItems;
@@ -1806,7 +1929,7 @@ function renderGastos(md, key) {
   }
 
   // Con ingresos: una sección por ingreso
-  const colorList = ['var(--blue)','var(--green)','var(--purple)','var(--yellow)','var(--red)'];
+  const colorList = ['var(--red)','var(--red)','var(--red)','var(--red)','var(--red)'];
   let html = '';
 
   ingresos.forEach((ing, i) => {
@@ -2064,8 +2187,8 @@ function renderDeuda(md) {
 
           <!-- Saldo restante (auto-calc) -->
           <div style="background:${saldoRestante===0&&saldoActual>0?'rgba(26,122,58,0.08)':saldoRestante>0?'rgba(255,159,10,0.06)':'rgba(0,0,0,0.04)'};border:1px solid ${saldoRestante===0&&saldoActual>0?'rgba(26,122,58,0.18)':saldoRestante>0?'rgba(255,159,10,0.18)':'rgba(0,0,0,0.06)'};border-radius:14px;padding:10px 8px;text-align:center">
-            <div style="font-size:0.52rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:${saldoRestante===0&&saldoActual>0?'var(--green)':'var(--yellow)'};margin-bottom:5px">Resta</div>
-            <div id="resta-${t.id}" style="font-size:1rem;font-weight:800;color:${saldoRestante===0&&saldoActual>0?'var(--green)':saldoRestante>0?'var(--yellow)':'var(--muted)'}">${saldoActual===0?'—':fmt(saldoRestante)}</div>
+            <div style="font-size:0.52rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:${saldoRestante===0&&saldoActual>0?'var(--green)':'var(--red)'};margin-bottom:5px">Resta</div>
+            <div id="resta-${t.id}" style="font-size:1rem;font-weight:800;color:${saldoRestante===0&&saldoActual>0?'var(--green)':saldoRestante>0?'var(--red)':'var(--muted)'}">${saldoActual===0?'—':fmt(saldoRestante)}</div>
           </div>
         </div>
 
@@ -2077,7 +2200,7 @@ function renderDeuda(md) {
             <span style="font-size:0.6rem;font-weight:700;color:${pctPagado>=100?'var(--green)':'var(--muted)'}">${Math.round(pctPagado)}%</span>
           </div>
           <div class="prog-track" style="height:5px">
-            <div class="prog-fill" style="width:${pctPagado}%;background:${pctPagado>=100?'var(--green)':pctPagado>=50?'var(--blue)':'var(--yellow)'}"></div>
+            <div class="prog-fill" style="width:${pctPagado}%;background:${pctPagado>=100?'var(--green)':pctPagado>=50?'var(--green)':'var(--red)'}"></div>
           </div>
         </div>` : ''}
 
@@ -2089,7 +2212,7 @@ function renderDeuda(md) {
               ${t.fechaCorte ? `✂️ Día ${t.fechaCorte}` : '✂️ Corte'}
             </button>
           </div>
-          <button style="background:rgba(0,122,255,0.07);border:1px solid rgba(0,122,255,0.15);color:var(--blue);border-radius:10px;padding:5px 10px;font-size:0.72rem;font-weight:700;cursor:pointer" onclick="openCargoItems('${t.id}')">
+          <button style="background:rgba(0,0,0,0.05);border:1px solid rgba(0,0,0,0.1);color:var(--muted);border-radius:10px;padding:5px 10px;font-size:0.72rem;font-weight:700;cursor:pointer" onclick="openCargoItems('${t.id}')">
             📋 ${hasItems ? `Gastos (${items.length})` : 'Desglose'}
           </button>
         </div>
@@ -2100,7 +2223,7 @@ function renderDeuda(md) {
           ${items.slice(0,2).map(ci=>`
             <div style="display:flex;justify-content:space-between;align-items:center;font-size:0.75rem;padding:2px 0">
               <span style="color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60%">${ci.name||'Sin nombre'}</span>
-              <span style="font-weight:600;color:var(--blue);flex-shrink:0">${fmtNeg(ci.amount||0)}</span>
+              <span style="font-weight:600;color:var(--red);flex-shrink:0">${fmtNeg(ci.amount||0)}</span>
             </div>`).join('')}
           ${items.length > 2 ? `<div style="font-size:0.65rem;color:var(--muted);margin-top:3px">+${items.length-2} más · total ${fmt(itemsTotal)}</div>` : ''}
         </div>` : ''}
@@ -2121,7 +2244,7 @@ function liveRecalcSaldoRestante(tarjetaId, inputVal) {
   const el = document.getElementById('resta-' + tarjetaId);
   if (!el) return;
   el.textContent = saldo === 0 ? '—' : fmt(resta);
-  el.style.color = resta === 0 && saldo > 0 ? 'var(--green)' : resta > 0 ? 'var(--yellow)' : 'var(--muted)';
+  el.style.color = resta === 0 && saldo > 0 ? 'var(--green)' : resta > 0 ? 'var(--red)' : 'var(--muted)';
 }
 
 // After save, full recalc
@@ -2135,7 +2258,7 @@ function recalcSaldoRestante(tarjetaId) {
   const el = document.getElementById('resta-' + tarjetaId);
   if (!el) return;
   el.textContent = saldo === 0 ? '—' : fmt(resta);
-  el.style.color = resta === 0 && saldo > 0 ? 'var(--green)' : resta > 0 ? 'var(--yellow)' : 'var(--muted)';
+  el.style.color = resta === 0 && saldo > 0 ? 'var(--green)' : resta > 0 ? 'var(--red)' : 'var(--muted)';
 }
 
 function formatCorte(dateStr) {
@@ -2448,8 +2571,8 @@ function openHistorialModal() {
           </div>
           ${tieneAhorro ? `
           <div style="background:rgba(88,86,214,0.07);border-radius:10px;padding:8px 10px">
-            <div style="font-size:0.55rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--purple);margin-bottom:3px">Ahorro</div>
-            <div style="font-size:0.82rem;font-weight:700;color:var(--purple);font-variant-numeric:tabular-nums">${fmt(ahorro)}</div>
+            <div style="font-size:0.55rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--green);margin-bottom:3px">Ahorro</div>
+            <div style="font-size:0.82rem;font-weight:700;color:var(--green);font-variant-numeric:tabular-nums">${fmt(ahorro)}</div>
           </div>` : ''}
         </div>
       </div>`;
@@ -2566,11 +2689,11 @@ function renderHistorialDetail() {
           <div style="font-size:0.55rem;color:var(--muted);margin-top:2px;text-transform:uppercase">Saldo</div>
         </div>
         <div style="background:rgba(255,159,10,0.06);border-radius:10px;padding:7px 4px">
-          <div style="font-size:0.85rem;font-weight:800;color:var(--yellow)">${fmt(t.abono)}</div>
+          <div style="font-size:0.85rem;font-weight:800;color:var(--green)">${fmt(t.abono)}</div>
           <div style="font-size:0.55rem;color:var(--muted);margin-top:2px;text-transform:uppercase">Abonado</div>
         </div>
         <div style="background:rgba(0,122,255,0.06);border-radius:10px;padding:7px 4px">
-          <div style="font-size:0.85rem;font-weight:800;color:var(--blue)">${fmt(Math.max(0,t.saldo-t.abono))}</div>
+          <div style="font-size:0.85rem;font-weight:800;color:var(--red)">${fmt(Math.max(0,t.saldo-t.abono))}</div>
           <div style="font-size:0.55rem;color:var(--muted);margin-top:2px;text-transform:uppercase">Resta</div>
         </div>
       </div>
@@ -2606,8 +2729,8 @@ function renderHistorialDetail() {
       </div>
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center">
         <div><div style="font-size:0.92rem;font-weight:800;color:var(--red)">${fmt(totalSaldo)}</div><div style="font-size:0.55rem;color:var(--muted);margin-top:2px;text-transform:uppercase">Saldo</div></div>
-        <div><div style="font-size:0.92rem;font-weight:800;color:var(--yellow)">${fmt(totalAbono)}</div><div style="font-size:0.55rem;color:var(--muted);margin-top:2px;text-transform:uppercase">Abonado</div></div>
-        <div><div style="font-size:0.92rem;font-weight:800;color:var(--blue)">${fmt(Math.max(0,totalSaldo-totalAbono))}</div><div style="font-size:0.55rem;color:var(--muted);margin-top:2px;text-transform:uppercase">Resta</div></div>
+        <div><div style="font-size:0.92rem;font-weight:800;color:var(--green)">${fmt(totalAbono)}</div><div style="font-size:0.55rem;color:var(--muted);margin-top:2px;text-transform:uppercase">Abonado</div></div>
+        <div><div style="font-size:0.92rem;font-weight:800;color:var(--red)">${fmt(Math.max(0,totalSaldo-totalAbono))}</div><div style="font-size:0.55rem;color:var(--muted);margin-top:2px;text-transform:uppercase">Resta</div></div>
       </div>
       <div id="hd-deuda-desglose" style="display:none;margin-top:10px;border-top:1px solid rgba(0,0,0,0.05);padding-top:6px">${deudaRows}</div>
     </div>` : ''}
