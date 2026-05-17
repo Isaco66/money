@@ -418,28 +418,53 @@ canvas{opacity:0.92;}
     <div id="ahorro-salidas-list"></div>
   </div>
 
+  <!-- Botón historial -->
+  <div class="fadein" style="margin-bottom:14px">
+    <button onclick="openHistorialModal()"
+      style="display:flex;align-items:center;justify-content:space-between;width:100%;background:rgba(255,255,255,0.9);border:1px solid rgba(0,0,0,0.07);border-radius:16px;padding:14px 16px;cursor:pointer;box-shadow:0 2px 12px rgba(0,0,0,0.04)">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="width:36px;height:36px;background:rgba(0,122,255,0.1);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0">📅</div>
+        <div style="text-align:left">
+          <div style="font-size:0.88rem;font-weight:700;color:var(--text)">Historial de meses</div>
+          <div style="font-size:0.65rem;color:var(--muted);margin-top:1px">Ver todos los meses registrados</div>
+        </div>
+      </div>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="16" height="16" style="color:var(--muted);flex-shrink:0"><path d="M9 18l6-6-6-6"/></svg>
+    </button>
+  </div>
+
 </div>
 
 <!-- MODAL: Agregar Depósito al Ahorro -->
 <div class="modal-overlay" id="modal-add-deposito">
   <div class="modal">
     <button class="modal-close" onclick="closeModal('modal-add-deposito')">✕</button>
-    <h3 id="modal-deposito-title">🐷 Agregar depósito</h3>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+      <div style="width:44px;height:44px;background:rgba(52,199,89,0.12);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;flex-shrink:0">🐷</div>
+      <div>
+        <h3 id="modal-deposito-title" style="margin:0;font-size:1.05rem;font-weight:800">Agregar depósito</h3>
+        <p style="font-size:0.7rem;color:var(--muted);margin-top:2px">Registra cuánto guardaste este mes</p>
+      </div>
+    </div>
     <input type="hidden" id="deposito-edit-id"/>
-    <div style="margin-bottom:16px">
+    <div style="margin-bottom:14px">
       <label class="modal-label">Monto</label>
-      <div style="display:flex;align-items:center;background:rgba(52,199,89,0.07);border:1.5px solid rgba(52,199,89,0.25);border-radius:14px;padding:0 14px;gap:6px">
-        <span style="font-size:1rem;font-weight:700;color:var(--green)">$</span>
+      <div style="display:flex;align-items:center;background:rgba(52,199,89,0.07);border:1.5px solid rgba(52,199,89,0.25);border-radius:16px;padding:0 16px;gap:8px">
+        <span style="font-size:1.2rem;font-weight:800;color:var(--green)">$</span>
         <input id="deposito-modal-monto" type="number" inputmode="decimal"
-          style="flex:1;background:none;border:none;outline:none;font-size:1.1rem;font-weight:700;color:var(--green);padding:13px 0;"
+          style="flex:1;background:none;border:none;outline:none;font-size:1.4rem;font-weight:800;color:var(--green);padding:14px 0;letter-spacing:-0.02em"
           placeholder="0"/>
       </div>
     </div>
-    <div style="margin-bottom:16px">
-      <label class="modal-label">Concepto (opcional)</label>
+    <div style="margin-bottom:14px">
+      <label class="modal-label">¿De qué ingreso guardas?</label>
+      <select class="inp" id="deposito-modal-fuente" style="width:100%;font-weight:600"></select>
+    </div>
+    <div style="margin-bottom:20px">
+      <label class="modal-label">Nota (opcional)</label>
       <input class="inp" id="deposito-modal-nota" placeholder="ej. Quincena, bono, guardé extra…"/>
     </div>
-    <button class="btn" style="width:100%;background:var(--green)" id="deposito-modal-btn" onclick="guardarDeposito()">Agregar depósito</button>
+    <button class="btn" style="width:100%;background:var(--green);padding:14px;font-size:0.95rem;border-radius:16px" id="deposito-modal-btn" onclick="guardarDeposito()">🐷 Agregar depósito</button>
   </div>
 </div>
 
@@ -555,25 +580,26 @@ canvas{opacity:0.92;}
     </div>
   </div>
 
-  <!-- Resumen de datos -->
-  <div class="block fadein">
-    <div class="block-title">
-      <span class="title-with-icon">
-        <span class="ui-svg-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 10h18"/><path d="M8 2v4"/><path d="M16 2v4"/></svg></span>
-        Resumen de meses
-      </span>
-    </div>
-    <div id="ajustes-resumen-meses"></div>
-  </div>
+  <!-- ajustes-resumen-meses kept hidden for JS compat -->
+  <div id="ajustes-resumen-meses" style="display:none"></div>
 
 </div>
 
 <!-- Hidden legacy elements kept for renderAhorro/renderHistorial compatibility -->
 <input type="file" id="import-file-input" accept=".json" style="display:none" onchange="importarDatos(event)"/>
-<select id="historial-select" style="display:none" onchange="renderHistorialDetail()"></select>
-<div id="historial-detail" style="display:none"></div>
-<select id="ahorro-desglose-select" style="display:none" onchange="renderAhorroDesgloseDetail()"></select>
-<div id="ahorro-desglose-detail" style="display:none"></div>
+<select id="historial-select" style="display:none;position:absolute;pointer-events:none" onchange="renderHistorialDetail()"></select>
+<div id="historial-detail" style="display:none;position:absolute;pointer-events:none"></div>
+<select id="ahorro-desglose-select" style="display:none;position:absolute;pointer-events:none" onchange="renderAhorroDesgloseDetail()"></select>
+<div id="ahorro-desglose-detail" style="display:none;position:absolute;pointer-events:none"></div>
+
+<!-- MODAL: Historial de meses -->
+<div class="modal-overlay" id="modal-historial">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modal-historial')">✕</button>
+    <h3>📅 Historial de meses</h3>
+    <div id="modal-historial-content" style="margin-top:4px"></div>
+  </div>
+</div>
 
 <!-- MODAL: Gráfica distribución -->
 <div class="modal-overlay" id="modal-donut">
@@ -986,31 +1012,79 @@ function renderIngresos(md) {
     return;
   }
 
-  // Compact row: name editable | amount editable | delete
-  list.innerHTML = ingresos.map((ing, idx) => `
-    <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid rgba(0,0,0,0.05)" id="ing-row-${ing.id}">
-      <div style="font-size:0.9rem;width:20px;text-align:center;flex-shrink:0;color:var(--muted)">💰</div>
-      <input
-        style="flex:1;background:none;border:none;outline:none;font-size:0.88rem;font-weight:600;color:var(--text);padding:2px 0;min-width:0"
-        value="${ing.name}" placeholder="Nombre"
-        onchange="updateIngreso('${ing.id}','name',this.value)"/>
-      <div style="display:flex;align-items:baseline;gap:1px;flex-shrink:0">
-        <span style="font-size:0.8rem;color:var(--muted);font-weight:600">$</span>
-        <input
-          type="text" inputmode="decimal"
-          style="background:none;border:none;border-bottom:1.5px solid rgba(0,0,0,0.08);outline:none;font-size:0.88rem;font-weight:700;color:var(--green);text-align:right;width:80px;padding:2px 2px"
-          value="${fmtNum(ing.amount)}" placeholder="0"
-          onfocus="focusIngresoInput(this)"
-          onblur="blurIngresoInput(this,'${ing.id}')"
-          data-raw="${ing.amount||0}"/>
-      </div>
-      <button onclick="moveIngreso('${ing.id}',-1)" style="background:none;border:none;color:var(--muted);font-size:0.9rem;cursor:pointer;padding:4px;flex-shrink:0">↑</button>
-      <button onclick="moveIngreso('${ing.id}',1)" style="background:none;border:none;color:var(--muted);font-size:0.9rem;cursor:pointer;padding:4px;flex-shrink:0">↓</button>
-      <button onclick="removeIngreso('${ing.id}')" style="background:none;border:none;color:var(--red);font-size:0.9rem;cursor:pointer;padding:4px;opacity:0.6;flex-shrink:0">✕</button>
-    </div>`).join('');
+  const accentColors = ['var(--blue)','var(--green)','var(--purple)','var(--yellow)','var(--red)'];
 
-  // Fix last item border
-  const total = ingresos.reduce((s,i)=>s+(i.amount||0),0);
+  list.innerHTML = ingresos.map((ing, idx) => {
+    const subs = ing.subItems || [];
+    const hasSubs = subs.length > 0;
+    const conceptTotal = hasSubs ? subs.reduce((s,si)=>s+(si.amount||0),0) : (ing.amount||0);
+    const accent = accentColors[idx % accentColors.length];
+
+    const subItemsHtml = subs.map(sub => `
+      <div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(0,0,0,0.04)" id="sub-row-${sub.id}">
+        <div style="width:5px;height:5px;border-radius:50%;background:${accent};flex-shrink:0;opacity:0.55"></div>
+        <input
+          style="flex:1;background:none;border:none;outline:none;font-size:0.82rem;font-weight:500;color:var(--text);padding:0;min-width:0"
+          value="${sub.name}" placeholder="Concepto"
+          onchange="updateSubIngreso('${ing.id}','${sub.id}','name',this.value)"/>
+        <div style="display:flex;align-items:baseline;gap:1px;flex-shrink:0">
+          <span style="font-size:0.72rem;color:var(--muted);font-weight:600">$</span>
+          <input
+            type="text" inputmode="decimal"
+            style="background:none;border:none;border-bottom:1.5px solid rgba(0,0,0,0.08);outline:none;font-size:0.82rem;font-weight:700;color:var(--green);text-align:right;width:72px;padding:1px 2px"
+            value="${fmtNum(sub.amount)}" placeholder="0"
+            onfocus="focusSubIngresoInput(this)"
+            onblur="blurSubIngresoInput(this,'${ing.id}','${sub.id}')"
+            data-raw="${sub.amount||0}"/>
+        </div>
+        <button onclick="removeSubIngreso('${ing.id}','${sub.id}')"
+          style="background:none;border:none;color:var(--red);font-size:0.78rem;cursor:pointer;padding:3px 4px;opacity:0.5;flex-shrink:0">✕</button>
+      </div>`).join('');
+
+    const addSubBtn = `
+      <div style="padding:8px 0 ${hasSubs?'4px':'0'}">
+        <button onclick="addSubIngreso('${ing.id}')"
+          style="background:none;border:1px dashed rgba(0,0,0,0.12);color:var(--muted);border-radius:8px;padding:5px 10px;font-size:0.72rem;font-weight:600;cursor:pointer;width:100%">
+          + Sub-ingreso
+        </button>
+      </div>`;
+
+    // Always show total line — editable input when no subs, read-only when has subs
+    const totalLineHtml = `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding-top:8px;${hasSubs?'border-top:1px solid rgba(0,0,0,0.05);margin-top:2px':''}">
+        <span style="font-size:0.6rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em">Total ${ing.name}</span>
+        <span style="font-size:0.88rem;font-weight:800;color:${accent};font-variant-numeric:tabular-nums">${fmt(conceptTotal)}</span>
+      </div>`;
+
+    return `
+    <div style="border-bottom:1px solid rgba(0,0,0,0.06);padding-bottom:12px;margin-bottom:10px" id="ing-row-${ing.id}">
+      <!-- Header: arrow + emoji + name | move + delete -->
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+        <button id="ing-arrow-${ing.id}" onclick="toggleSubIngresos('${ing.id}')"
+          style="background:none;border:none;color:var(--muted);font-size:0.68rem;cursor:pointer;padding:2px 3px;flex-shrink:0;line-height:1;width:16px;text-align:center">▾</button>
+        <span style="font-size:0.92rem;flex-shrink:0">💰</span>
+        <input
+          style="flex:1;background:none;border:none;outline:none;font-size:0.88rem;font-weight:700;color:var(--text);padding:0;min-width:0"
+          value="${ing.name}" placeholder="Concepto"
+          onchange="updateIngreso('${ing.id}','name',this.value)"/>
+        <!-- Move + delete grouped at far right, no amount here -->
+        <button onclick="moveIngreso('${ing.id}',-1)" style="background:none;border:none;color:var(--muted);font-size:0.85rem;cursor:pointer;padding:2px 3px;flex-shrink:0;opacity:0.6">↑</button>
+        <button onclick="moveIngreso('${ing.id}',1)"  style="background:none;border:none;color:var(--muted);font-size:0.85rem;cursor:pointer;padding:2px 3px;flex-shrink:0;opacity:0.6">↓</button>
+        <button onclick="removeIngreso('${ing.id}')"  style="background:none;border:none;color:var(--red);font-size:0.85rem;cursor:pointer;padding:2px 3px;flex-shrink:0;opacity:0.55">✕</button>
+      </div>
+      <!-- Sub-panel + total always visible -->
+      <div id="sub-ing-${ing.id}" style="display:block;padding-left:22px">
+        ${subItemsHtml}
+        ${addSubBtn}
+        ${totalLineHtml}
+      </div>
+    </div>`;
+  }).join('');
+
+  const total = ingresos.reduce((s,i)=>{
+    const subs = i.subItems||[];
+    return s + (subs.length > 0 ? subs.reduce((a,si)=>a+(si.amount||0),0) : (i.amount||0));
+  }, 0);
   if(totalRow) totalRow.style.cssText += ';display:flex';
   if(totalVal) totalVal.textContent = fmt(total);
 }
@@ -1026,6 +1100,18 @@ function blurIngresoInput(el, id) {
   el.dataset.raw = val;
   el.value = fmtNum(val);
   updateIngreso(id, 'amount', val);
+}
+function focusSubIngresoInput(el) {
+  const raw = el.dataset.raw || '0';
+  el.value = raw === '0' ? '' : raw;
+  el.type = 'number';
+}
+function blurSubIngresoInput(el, ingresoId, subId) {
+  el.type = 'text';
+  const val = parseFloat(el.value) || 0;
+  el.dataset.raw = val;
+  el.value = fmtNum(val);
+  updateSubIngreso(ingresoId, subId, 'amount', val);
 }
 function updateIngreso(id, field, value) {
   const key = currentKey();
@@ -1048,10 +1134,66 @@ function addIngreso() {
   if (!raw.ingresos) raw.ingresos = [];
   const defaults = ['Nómina', 'Vales despensa', 'Ingreso extra'];
   const name = defaults[raw.ingresos.length] || 'Ingreso';
-  raw.ingresos.push({ id: uid(), name, amount: 0 });
+  raw.ingresos.push({ id: uid(), name, amount: 0, subItems: [] });
   saveState();
   renderAll();
   showUpdatedBadge();
+}
+function addSubIngreso(ingresoId) {
+  const key = currentKey();
+  getMonthData(key);
+  const raw = state.months[key];
+  if (!raw.ingresos) return;
+  const ing = raw.ingresos.find(i => i.id === ingresoId);
+  if (!ing) return;
+  if (!ing.subItems) ing.subItems = [];
+  ing.subItems.push({ id: uid(), name: 'Sub-ingreso', amount: 0 });
+  // Recalc parent amount from subs
+  ing.amount = ing.subItems.reduce((s,si)=>s+(si.amount||0),0);
+  syncLegacyIngresos(raw);
+  saveState();
+  renderAll();
+  showUpdatedBadge();
+}
+function updateSubIngreso(ingresoId, subId, field, value) {
+  const key = currentKey();
+  getMonthData(key);
+  const raw = state.months[key];
+  if (!raw.ingresos) return;
+  const ing = raw.ingresos.find(i => i.id === ingresoId);
+  if (!ing || !ing.subItems) return;
+  const sub = ing.subItems.find(s => s.id === subId);
+  if (!sub) return;
+  if (field === 'amount') sub.amount = parseFloat(value) || 0;
+  else sub[field] = value;
+  // Recalc parent total
+  ing.amount = ing.subItems.reduce((s,si)=>s+(si.amount||0),0);
+  syncLegacyIngresos(raw);
+  saveState();
+  renderAll();
+  showUpdatedBadge();
+}
+function removeSubIngreso(ingresoId, subId) {
+  const key = currentKey();
+  getMonthData(key);
+  const raw = state.months[key];
+  if (!raw.ingresos) return;
+  const ing = raw.ingresos.find(i => i.id === ingresoId);
+  if (!ing || !ing.subItems) return;
+  ing.subItems = ing.subItems.filter(s => s.id !== subId);
+  ing.amount = ing.subItems.reduce((s,si)=>s+(si.amount||0),0);
+  syncLegacyIngresos(raw);
+  saveState();
+  renderAll();
+  showUpdatedBadge();
+}
+function toggleSubIngresos(ingresoId) {
+  const el = document.getElementById('sub-ing-' + ingresoId);
+  const arrow = document.getElementById('ing-arrow-' + ingresoId);
+  if (!el) return;
+  const open = el.style.display !== 'none';
+  el.style.display = open ? 'none' : 'block';
+  if (arrow) arrow.textContent = open ? '▸' : '▾';
 }
 function removeIngreso(id) {
   const key = currentKey();
@@ -1084,10 +1226,14 @@ function syncLegacyIngresos(md) {
   md.vales = valesEnt ? (valesEnt.amount||0) : 0;
 }
 function migrateIngresos(md) {
-  if (md.ingresos) return;
+  if (md.ingresos) {
+    // Ensure all ingresos have subItems array
+    md.ingresos.forEach(i => { if (!i.subItems) i.subItems = []; });
+    return;
+  }
   md.ingresos = [];
-  if ((md.nomina||0)>0) md.ingresos.push({ id: uid(), name: 'Nómina', amount: md.nomina });
-  if ((md.vales||0)>0) md.ingresos.push({ id: uid(), name: 'Vales despensa', amount: md.vales });
+  if ((md.nomina||0)>0) md.ingresos.push({ id: uid(), name: 'Nómina', amount: md.nomina, subItems: [] });
+  if ((md.vales||0)>0) md.ingresos.push({ id: uid(), name: 'Vales despensa', amount: md.vales, subItems: [] });
 }
 
 function migrateFechaCorte(md) {
@@ -1269,7 +1415,7 @@ function calcAndRender(md, key) {
           html += mkExpRow('💳', t.name, t.cargo, 'var(--blue)', ' <span style="font-size:0.55rem;background:rgba(0,122,255,0.1);color:var(--blue);padding:1px 5px;border-radius:99px">tarjeta</span>');
         });
         if (ahorroDeEsteIng > 0) {
-          html += mkExpRow('🐷', 'Ahorro del mes', ahorroDeEsteIng, 'var(--green)');
+          html += mkExpRow('🐷', 'Ahorro del mes', ahorroDeEsteIng, 'var(--red)');
         }
 
         if (gastos.length === 0 && tarjetasAqui.length === 0 && ahorroDeEsteIng === 0) {
@@ -1566,25 +1712,51 @@ function renderGastos(md, key) {
               </div>`).join('')}
           </div>`
         : '';
+      const catId = 'cat-' + label.replace(/[^a-z0-9]/gi,'') + '-' + Math.random().toString(36).slice(2,6);
       return `
-        <div style="margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid rgba(0,0,0,0.05)">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-            <span style="font-size:0.82rem;font-weight:700;color:var(--text)">${label}</span>
-            <span style="font-size:0.88rem;font-weight:800;color:${color};font-variant-numeric:tabular-nums">${fmt(amount)}</span>
+        <div style="margin-bottom:10px;background:rgba(0,0,0,0.03);border:1px solid rgba(0,0,0,0.07);border-radius:14px;overflow:hidden">
+          <div onclick="toggleCatBlock('${catId}')" style="display:flex;align-items:center;padding:12px 12px 12px;cursor:pointer;user-select:none;-webkit-user-select:none">
+            <div style="width:4px;height:16px;background:${color};border-radius:99px;margin-right:8px;flex-shrink:0"></div>
+            <span style="font-size:0.85rem;font-weight:700;color:var(--text);flex:1">${label}</span>
+            <span id="${catId}-arrow" style="font-size:0.65rem;color:var(--muted);transition:transform 0.25s;display:inline-block;transform:rotate(0deg)">▾</span>
           </div>
-          <div style="height:6px;background:rgba(0,0,0,0.07);border-radius:99px;overflow:hidden;margin-bottom:4px">
-            <div style="height:100%;width:${pct}%;background:${color};border-radius:99px;transition:width 0.6s ease"></div>
+          <div id="${catId}" style="display:none;padding:0 12px 10px">
+            ${itemsHtml || '<div style="font-size:0.75rem;color:var(--muted);padding:4px 0 4px 2px;font-style:italic">Sin gastos</div>'}
           </div>
-          <div style="font-size:0.62rem;color:var(--muted)">${pct.toFixed(1)}% del total</div>
-          ${itemsHtml}
         </div>`;
     };
 
-    resumenEl.innerHTML = rows.filter(r => !r.esAhorro).map(r => mkBar(r, grandTotal)).join('') +
-      `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0 2px;border-top:2px solid rgba(0,0,0,0.07);margin-top:2px">
-        <span style="font-size:0.82rem;font-weight:700;color:var(--text)">Total gastado</span>
-        <span style="font-size:0.95rem;font-weight:800;color:var(--red);font-variant-numeric:tabular-nums">${fmtNeg(grandTotal)}</span>
-      </div>`;
+    const visibleRows = rows.filter(r => !r.esAhorro);
+    const ahorroRows = rows.filter(r => r.esAhorro);
+
+    // Build category totals summary
+    const catSummaryHtml = visibleRows.length > 0
+      ? `<div style="margin-top:14px;padding-top:12px;border-top:1.5px solid rgba(0,0,0,0.07)">
+          <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);margin-bottom:10px">💰 Total gastado por categoría</div>
+          ${visibleRows.map(r => {
+            const pct = grandTotal > 0 ? ((r.amount / grandTotal) * 100).toFixed(1) : '0.0';
+            return `<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 10px;border-radius:10px;margin-bottom:4px;background:rgba(0,0,0,0.025)">
+              <div style="display:flex;align-items:center;gap:8px;min-width:0;flex:1">
+                <div style="width:8px;height:8px;border-radius:50%;background:${r.color};flex-shrink:0"></div>
+                <span style="font-size:0.8rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.label}</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+                <span style="font-size:0.65rem;color:var(--muted);font-weight:500">${pct}%</span>
+                <span style="font-size:0.85rem;font-weight:800;color:var(--red);font-variant-numeric:tabular-nums">${fmtNeg(r.amount)}</span>
+              </div>
+            </div>`;
+          }).join('')}
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 10px 2px;border-top:2px solid rgba(0,0,0,0.07);margin-top:4px">
+            <span style="font-size:0.82rem;font-weight:700;color:var(--text)">Total gastado</span>
+            <span style="font-size:0.95rem;font-weight:800;color:var(--red);font-variant-numeric:tabular-nums">${fmtNeg(grandTotal)}</span>
+          </div>
+        </div>`
+      : `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0 2px;border-top:2px solid rgba(0,0,0,0.07);margin-top:2px">
+          <span style="font-size:0.82rem;font-weight:700;color:var(--text)">Total gastado</span>
+          <span style="font-size:0.95rem;font-weight:800;color:var(--red);font-variant-numeric:tabular-nums">${fmtNeg(grandTotal)}</span>
+        </div>`;
+
+    resumenEl.innerHTML = visibleRows.map(r => mkBar(r, grandTotal)).join('') + catSummaryHtml;
   }
 
   // ── Listas dinámicas por ingreso ── (hidden: redundant with category summary)
@@ -1687,6 +1859,15 @@ function renderGastos(md, key) {
   }
 
   listContainer.innerHTML = html;
+}
+
+function toggleCatBlock(id) {
+  const body = document.getElementById(id);
+  const arrow = document.getElementById(id + '-arrow');
+  if (!body) return;
+  const isOpen = body.style.display !== 'none';
+  body.style.display = isOpen ? 'none' : 'block';
+  if (arrow) arrow.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
 }
 
 function expenseRow(e, key) {
@@ -2223,18 +2404,71 @@ function blurAhorroInput(el) {
 // ════════════════════════════════════════════
 //  HISTORIAL
 // ════════════════════════════════════════════
+function openHistorialModal() {
+  const keys = Object.keys(state.months).sort().reverse();
+  const el = document.getElementById('modal-historial-content');
+  if (!el) return;
+
+  if (keys.length === 0) {
+    el.innerHTML = `<p class="small-muted" style="text-align:center;padding:16px 0">Sin meses registrados todavía</p>`;
+    document.getElementById('modal-historial').classList.add('show');
+    return;
+  }
+
+  el.innerHTML = keys.map(k => {
+    const [y, m] = k.split('-').map(Number);
+    const md = state.months[k];
+    const totalIngresos = (md.ingresos||[]).reduce((s,i) => {
+      const subs = i.subItems||[];
+      return s + (subs.length > 0 ? subs.reduce((a,si)=>a+(si.amount||0),0) : (i.amount||0));
+    }, 0) || (md.nomina||0);
+    const tarjetasK = md.tarjetas || [];
+    const totalCortes = tarjetasK.reduce((s,t)=>s+(t.cargo||0),0);
+    const totalGastos = (md.expenses||[]).filter(e=>e.type!=='vales'&&e.fuente!=='__AHORRO__').reduce((s,e)=>s+(e.amount||0),0) + totalCortes;
+    const ahorro = getTotalAhorradoMes(k);
+    const libre = totalIngresos - totalGastos - ahorro;
+    const tieneAhorro = ahorro > 0;
+
+    return `
+      <div style="padding:12px 0;border-bottom:1px solid rgba(0,0,0,0.06)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div style="font-size:0.9rem;font-weight:800;letter-spacing:-0.01em">${MONTHS_ES[m-1]} ${y} ${tieneAhorro?'🐷':''}</div>
+          <div style="font-size:0.88rem;font-weight:800;color:${libre>=0?'var(--green)':'var(--red)'}">${libre>=0?fmtPos(libre):fmtNeg(Math.abs(libre))}</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr ${tieneAhorro?'1fr':'0fr'};gap:6px">
+          <div style="background:rgba(52,199,89,0.07);border-radius:10px;padding:8px 10px">
+            <div style="font-size:0.55rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--green);margin-bottom:3px">Ingresos</div>
+            <div style="font-size:0.82rem;font-weight:700;color:var(--green);font-variant-numeric:tabular-nums">${fmt(totalIngresos)}</div>
+          </div>
+          <div style="background:rgba(255,59,48,0.06);border-radius:10px;padding:8px 10px">
+            <div style="font-size:0.55rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--red);margin-bottom:3px">Gastos</div>
+            <div style="font-size:0.82rem;font-weight:700;color:var(--red);font-variant-numeric:tabular-nums">${fmt(totalGastos)}</div>
+          </div>
+          ${tieneAhorro ? `
+          <div style="background:rgba(88,86,214,0.07);border-radius:10px;padding:8px 10px">
+            <div style="font-size:0.55rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--purple);margin-bottom:3px">Ahorro</div>
+            <div style="font-size:0.82rem;font-weight:700;color:var(--purple);font-variant-numeric:tabular-nums">${fmt(ahorro)}</div>
+          </div>` : ''}
+        </div>
+      </div>`;
+  }).join('') + `
+    <div style="padding-top:12px;display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:0.7rem;color:var(--muted);font-weight:600">${keys.length} ${keys.length===1?'mes':'meses'} registrados</span>
+    </div>`;
+
+  document.getElementById('modal-historial').classList.add('show');
+}
+
 function renderHistorial() {
-  const now = new Date();
   const keys = Object.keys(state.months).sort().reverse();
   const sel = document.getElementById('historial-select');
   sel.innerHTML = `<option value="">— Selecciona un mes —</option>` +
     keys.map(k => {
       const [y,m] = k.split('-').map(Number);
-      const md = state.months[k];
       const tieneAhorro = getTotalAhorradoMes(k) > 0;
       return `<option value="${k}">${MONTHS_ES[m-1]} ${y}${tieneAhorro?' ✅':''}</option>`;
     }).join('');
-  if (keys.length === 1) { sel.value = keys[0]; renderHistorialDetail(); }
+  // Never auto-select — historial only shown in modal now
 }
 
 // ════════════════════════════════════════════
@@ -2498,7 +2732,7 @@ function renderDepositosList(key) {
       <span style="font-size:1.1rem;width:28px;text-align:center;flex-shrink:0">🐷</span>
       <div style="flex:1;min-width:0">
         <div style="font-size:0.85rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${d.nota || 'Depósito al ahorro'}</div>
-        ${d.fecha ? `<div style="font-size:0.62rem;color:var(--muted);margin-top:1px">${d.fecha}</div>` : ''}
+        <div style="font-size:0.62rem;color:var(--muted);margin-top:1px">${[d.fuenteNombre ? '💰 '+d.fuenteNombre : '', d.fecha].filter(Boolean).join(' · ')}</div>
       </div>
       <span style="font-size:0.9rem;font-weight:700;color:var(--green);flex-shrink:0">+${fmt(d.amount)}</span>
       <button onclick="editDeposito(${i},'${key}')" style="background:none;border:none;color:var(--muted);font-size:0.9rem;padding:4px;cursor:pointer;flex-shrink:0">✏️</button>
@@ -2588,12 +2822,30 @@ function guardarSalida() {
   toast('💸 Salida registrada');
 }
 
+function populateFuenteDeposito(currentFuente) {
+  const md = getMonthData(currentKey());
+  const ingresos = md.ingresos || [];
+  const sel = document.getElementById('deposito-modal-fuente');
+  if (!sel) return;
+  if (ingresos.length === 0) {
+    sel.innerHTML = `<option value="">— Sin ingresos registrados —</option>`;
+  } else {
+    sel.innerHTML = ingresos.map(ing =>
+      `<option value="${ing.id}" ${currentFuente===ing.id?'selected':''}>${ing.name}</option>`
+    ).join('');
+    if (!currentFuente || !ingresos.find(i => i.id === currentFuente)) {
+      sel.value = ingresos[0].id;
+    }
+  }
+}
+
 function openAddDeposito() {
   document.getElementById('deposito-edit-id').value = '';
   document.getElementById('deposito-modal-monto').value = '';
   document.getElementById('deposito-modal-nota').value = '';
-  document.getElementById('modal-deposito-title').textContent = '🐷 Agregar depósito';
-  document.getElementById('deposito-modal-btn').textContent = 'Agregar depósito';
+  document.getElementById('modal-deposito-title').textContent = 'Agregar depósito';
+  document.getElementById('deposito-modal-btn').textContent = '🐷 Agregar depósito';
+  populateFuenteDeposito(null);
   document.getElementById('modal-add-deposito').classList.add('show');
 }
 
@@ -2604,8 +2856,9 @@ function editDeposito(idx, key) {
   document.getElementById('deposito-edit-id').value = String(idx);
   document.getElementById('deposito-modal-monto').value = d.amount || '';
   document.getElementById('deposito-modal-nota').value = d.nota || '';
-  document.getElementById('modal-deposito-title').textContent = '✏️ Editar depósito';
-  document.getElementById('deposito-modal-btn').textContent = 'Guardar cambios';
+  document.getElementById('modal-deposito-title').textContent = 'Editar depósito';
+  document.getElementById('deposito-modal-btn').textContent = '💾 Guardar cambios';
+  populateFuenteDeposito(d.fuente || null);
   document.getElementById('modal-add-deposito').classList.add('show');
 }
 
@@ -2613,6 +2866,7 @@ function guardarDeposito() {
   const key = currentKey();
   const amount = parseFloat(document.getElementById('deposito-modal-monto').value) || 0;
   const nota = document.getElementById('deposito-modal-nota').value.trim();
+  const fuente = document.getElementById('deposito-modal-fuente').value || '';
   const editIdx = document.getElementById('deposito-edit-id').value;
   if (amount <= 0) return alert('Ingresa un monto válido');
 
@@ -2623,6 +2877,11 @@ function guardarDeposito() {
   const md = state.months[key];
   if (!md.depositos) md.depositos = [];
 
+  // Get ingreso name for display
+  const ingresos = md.ingresos || [];
+  const ingreso = ingresos.find(i => i.id === fuente);
+  const fuenteNombre = ingreso ? ingreso.name : null;
+
   const now = new Date();
   const fechaStr = now.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' });
 
@@ -2630,8 +2889,10 @@ function guardarDeposito() {
     const i = parseInt(editIdx);
     md.depositos[i].amount = amount;
     md.depositos[i].nota = nota || undefined;
+    md.depositos[i].fuente = fuente || undefined;
+    md.depositos[i].fuenteNombre = fuenteNombre || undefined;
   } else {
-    md.depositos.push({ id: uid(), amount, nota: nota || undefined, fecha: fechaStr });
+    md.depositos.push({ id: uid(), amount, nota: nota || undefined, fuente: fuente || undefined, fuenteNombre: fuenteNombre || undefined, fecha: fechaStr });
   }
 
   // Sync ahorroReal to total of depositos (for cerrar mes compatibility)
