@@ -256,14 +256,11 @@ canvas{opacity:0.92;}
     <button class="month-nav" onclick="changeMonth(1)">›</button>
   </div>
 
-  <!-- Ingresos con tipos dinámicos -->
+  <!-- Ingresos inline editable -->
   <div class="block fadein">
     <div class="block-title">
       <span class="title-with-icon"><span class="ui-svg-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"/><path d="M17 7l-5-5-5 5"/></svg></span>Ingreso del mes</span>
-      <div style="display:flex;gap:6px;">
-        <button class="btn-outline" onclick="openAddIncomeTypeModal()" style="font-size:0.7rem;padding:5px 10px">+ Tipo</button>
-        <button class="btn-outline" onclick="addIngreso()" style="font-size:0.7rem;padding:5px 10px;display:none;" id="btn-add-income-legacy">+ Agregar</button>
-      </div>
+      <button class="btn-outline" onclick="addIngreso()" style="font-size:0.7rem;padding:5px 10px">+ Agregar</button>
     </div>
     <div id="ingresos-list"></div>
     <div id="ingresos-total-row" style="display:none;padding-top:10px;border-top:1px solid rgba(0,0,0,0.06);margin-top:2px;justify-content:space-between;align-items:center">
@@ -622,37 +619,6 @@ canvas{opacity:0.92;}
   </div>
 </div>
 
-<!-- MODAL: Nuevo tipo de ingreso -->
-<div class="modal-overlay" id="modal-add-income-type">
-  <div class="modal">
-    <button class="modal-close" onclick="closeModal('modal-add-income-type')">✕</button>
-    <h3>➕ Nuevo tipo de ingreso</h3>
-    <label class="modal-label">Nombre del tipo (Ej: Ingreso normal, Restaurante)</label>
-    <div class="input-row">
-      <input class="inp" id="input-income-type-name" placeholder="Ej: Ingreso normal"/>
-    </div>
-    <button class="btn" style="width:100%" onclick="saveIncomeType()">Crear tipo</button>
-  </div>
-</div>
-
-<!-- MODAL: Agregar item de ingreso -->
-<div class="modal-overlay" id="modal-add-income-item">
-  <div class="modal">
-    <button class="modal-close" onclick="closeModal('modal-add-income-item')">✕</button>
-    <h3>💰 Agregar concepto de ingreso</h3>
-    <input type="hidden" id="input-income-type-id"/>
-    <label class="modal-label">Concepto (Ej: Nómina, Reembolso)</label>
-    <div class="input-row">
-      <input class="inp" id="input-income-concept" placeholder="Concepto"/>
-    </div>
-    <label class="modal-label">Monto</label>
-    <div class="input-row">
-      <input class="inp" id="input-income-amount" type="number" placeholder="0" inputmode="decimal"/>
-    </div>
-    <button class="btn" style="width:100%" onclick="saveIncomeItem()">Agregar</button>
-  </div>
-</div>
-
 <!-- MODAL: Cargo items tarjeta -->
 <div class="modal-overlay" id="modal-cargo-items">
   <div class="modal">
@@ -1005,195 +971,48 @@ document.querySelectorAll('.modal-overlay').forEach(el => {
 });
 
 // ════════════════════════════════════════════
-//  INGRESOS - CON SOPORTE A TIPOS DINÁMICOS
+//  INGRESOS
 // ════════════════════════════════════════════
 function renderIngresos(md) {
   const list = document.getElementById('ingresos-list');
   const totalRow = document.getElementById('ingresos-total-row');
   const totalVal = document.getElementById('ingresos-total-val');
   if (!list) return;
+  const ingresos = md.ingresos || [];
 
-  // Inicializar incomeTypes si no existen
-  if (!md.incomeTypes) md.incomeTypes = {};
-
-  const hasTypes = Object.keys(md.incomeTypes).length > 0;
-  const hasLegacy = (md.ingresos && md.ingresos.length > 0);
-
-  if (!hasTypes && !hasLegacy) {
-    list.innerHTML = `<p class="small-muted" style="text-align:center;padding:12px 0">Toca "+ Tipo" para crear categorías de ingresos</p>`;
+  if (ingresos.length === 0) {
+    list.innerHTML = `<p class="small-muted" style="text-align:center;padding:12px 0">Toca "+ Agregar" para añadir un ingreso</p>`;
     if(totalRow) totalRow.style.display = 'none';
     return;
   }
 
-  let html = '';
-  let totalIncome = 0;
+  // Compact row: name editable | amount editable | delete
+  list.innerHTML = ingresos.map((ing, idx) => `
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid rgba(0,0,0,0.05)" id="ing-row-${ing.id}">
+      <div style="font-size:0.9rem;width:20px;text-align:center;flex-shrink:0;color:var(--muted)">💰</div>
+      <input
+        style="flex:1;background:none;border:none;outline:none;font-size:0.88rem;font-weight:600;color:var(--text);padding:2px 0;min-width:0"
+        value="${ing.name}" placeholder="Nombre"
+        onchange="updateIngreso('${ing.id}','name',this.value)"/>
+      <div style="display:flex;align-items:baseline;gap:1px;flex-shrink:0">
+        <span style="font-size:0.8rem;color:var(--muted);font-weight:600">$</span>
+        <input
+          type="text" inputmode="decimal"
+          style="background:none;border:none;border-bottom:1.5px solid rgba(0,0,0,0.08);outline:none;font-size:0.88rem;font-weight:700;color:var(--green);text-align:right;width:80px;padding:2px 2px"
+          value="${fmtNum(ing.amount)}" placeholder="0"
+          onfocus="focusIngresoInput(this)"
+          onblur="blurIngresoInput(this,'${ing.id}')"
+          data-raw="${ing.amount||0}"/>
+      </div>
+      <button onclick="moveIngreso('${ing.id}',-1)" style="background:none;border:none;color:var(--muted);font-size:0.9rem;cursor:pointer;padding:4px;flex-shrink:0">↑</button>
+      <button onclick="moveIngreso('${ing.id}',1)" style="background:none;border:none;color:var(--muted);font-size:0.9rem;cursor:pointer;padding:4px;flex-shrink:0">↓</button>
+      <button onclick="removeIngreso('${ing.id}')" style="background:none;border:none;color:var(--red);font-size:0.9rem;cursor:pointer;padding:4px;opacity:0.6;flex-shrink:0">✕</button>
+    </div>`).join('');
 
-  // RENDEREAR TIPOS NUEVOS
-  if (hasTypes) {
-    for (const typeId in md.incomeTypes) {
-      const type = md.incomeTypes[typeId];
-      let typeTotal = 0;
-      let itemsHtml = '';
-
-      for (const item of (type.items || [])) {
-        typeTotal += item.amount;
-        itemsHtml += `
-          <div class="expense-item" style="margin-left:16px;padding:6px 0">
-            <span class="expense-icon">•</span>
-            <div class="expense-info">
-              <div class="expense-name">${item.concept}</div>
-              <div class="expense-sub">Monto</div>
-            </div>
-            <div class="expense-amount" style="color:var(--green);">$${fmt(item.amount)}</div>
-            <button class="expense-del" onclick="deleteIncomeItem('${typeId}', '${item.id}')">✕</button>
-          </div>
-        `;
-      }
-
-      totalIncome += typeTotal;
-
-      html += `
-        <div style="margin-bottom:12px;background:rgba(255,255,255,0.4);border:1px solid rgba(52,199,89,0.1);border-radius:12px;padding:10px">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid rgba(0,0,0,0.05);">
-            <span style="font-weight:700;font-size:0.9rem">📂 ${type.name}</span>
-            <div style="display:flex;gap:6px;align-items:center;">
-              <span style="background:rgba(52,199,89,0.1);color:var(--green);padding:3px 10px;border-radius:12px;font-size:0.7rem;font-weight:700;">$${fmt(typeTotal)}</span>
-              <button onclick="openAddIncomeItemModal('${typeId}')" style="background:none;border:none;color:var(--green);cursor:pointer;font-size:1rem;padding:0;">+</button>
-              <button onclick="deleteIncomeType('${typeId}')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:0.9rem;padding:0;opacity:0.6;">✕</button>
-            </div>
-          </div>
-          ${itemsHtml || '<p class="small-muted" style="padding:8px 0">Sin conceptos aún</p>'}
-        </div>
-      `;
-    }
-  }
-
-  // RENDEREAR LEGACY (si existen datos antiguos)
-  if (hasLegacy) {
-    const ingresos = md.ingresos || [];
-    for (const ing of ingresos) {
-      totalIncome += ing.amount;
-      html += `
-        <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid rgba(0,0,0,0.05)" id="ing-row-${ing.id}">
-          <div style="font-size:0.9rem;width:20px;text-align:center;flex-shrink:0;color:var(--muted)">💰</div>
-          <input
-            style="flex:1;background:none;border:none;outline:none;font-size:0.88rem;font-weight:600;color:var(--text);padding:2px 0;min-width:0"
-            value="${ing.name}" placeholder="Nombre"
-            onchange="updateIngreso('${ing.id}','name',this.value)"/>
-          <div style="display:flex;align-items:baseline;gap:1px;flex-shrink:0">
-            <span style="font-size:0.8rem;color:var(--muted);font-weight:600">$</span>
-            <input
-              type="text" inputmode="decimal"
-              style="background:none;border:none;border-bottom:1.5px solid rgba(0,0,0,0.08);outline:none;font-size:0.88rem;font-weight:700;color:var(--green);text-align:right;width:80px;padding:2px 2px"
-              value="${fmtNum(ing.amount)}" placeholder="0"
-              onfocus="focusIngresoInput(this)"
-              onblur="blurIngresoInput(this,'${ing.id}')"
-              data-raw="${ing.amount||0}"/>
-          </div>
-          <button onclick="moveIngreso('${ing.id}',-1)" style="background:none;border:none;color:var(--muted);font-size:0.9rem;cursor:pointer;padding:4px;flex-shrink:0">↑</button>
-          <button onclick="moveIngreso('${ing.id}',1)" style="background:none;border:none;color:var(--muted);font-size:0.9rem;cursor:pointer;padding:4px;flex-shrink:0">↓</button>
-          <button onclick="removeIngreso('${ing.id}')" style="background:none;border:none;color:var(--red);font-size:0.9rem;cursor:pointer;padding:4px;opacity:0.6;flex-shrink:0">✕</button>
-        </div>
-      `;
-    }
-  }
-
-  list.innerHTML = html;
+  // Fix last item border
+  const total = ingresos.reduce((s,i)=>s+(i.amount||0),0);
   if(totalRow) totalRow.style.cssText += ';display:flex';
-  if(totalVal) totalVal.textContent = fmt(totalIncome);
-}
-
-// FUNCIONES NUEVAS PARA TIPOS DE INGRESOS
-function openAddIncomeTypeModal() {
-  document.getElementById('input-income-type-name').value = '';
-  document.getElementById('modal-add-income-type').classList.add('show');
-}
-
-function saveIncomeType() {
-  const typeName = document.getElementById('input-income-type-name').value.trim();
-  if (!typeName) {
-    toast('❌ Escribe el nombre del tipo');
-    return;
-  }
-  
-  const key = currentKey();
-  const md = getMonthData(key);
-  if (!md.incomeTypes) md.incomeTypes = {};
-  
-  const typeId = uid();
-  md.incomeTypes[typeId] = {
-    id: typeId,
-    name: typeName,
-    items: []
-  };
-  
-  saveState();
-  closeModal('modal-add-income-type');
-  renderAll();
-  showUpdatedBadge();
-  toast('✅ Tipo de ingreso creado');
-}
-
-function openAddIncomeItemModal(typeId) {
-  document.getElementById('input-income-type-id').value = typeId;
-  document.getElementById('input-income-concept').value = '';
-  document.getElementById('input-income-amount').value = '';
-  document.getElementById('modal-add-income-item').classList.add('show');
-}
-
-function saveIncomeItem() {
-  const typeId = document.getElementById('input-income-type-id').value;
-  const concept = document.getElementById('input-income-concept').value.trim();
-  const amount = parseFloat(document.getElementById('input-income-amount').value) || 0;
-  
-  if (!concept || amount <= 0) {
-    toast('❌ Completa concepto y monto');
-    return;
-  }
-
-  const key = currentKey();
-  const md = getMonthData(key);
-  if (md.incomeTypes && md.incomeTypes[typeId]) {
-    md.incomeTypes[typeId].items.push({
-      id: uid(),
-      concept: concept,
-      amount: amount
-    });
-    
-    saveState();
-    closeModal('modal-add-income-item');
-    renderAll();
-    showUpdatedBadge();
-    toast('💵 Concepto agregado');
-  }
-}
-
-function deleteIncomeItem(typeId, itemId) {
-  if (!confirm('¿Eliminar este concepto de ingreso?')) return;
-  
-  const key = currentKey();
-  const md = getMonthData(key);
-  if (md.incomeTypes && md.incomeTypes[typeId]) {
-    md.incomeTypes[typeId].items = md.incomeTypes[typeId].items.filter(i => i.id !== itemId);
-    saveState();
-    renderAll();
-    showUpdatedBadge();
-    toast('🗑️ Concepto eliminado');
-  }
-}
-
-function deleteIncomeType(typeId) {
-  if (!confirm('¿Eliminar este tipo de ingreso y todos sus conceptos?')) return;
-  
-  const key = currentKey();
-  const md = getMonthData(key);
-  if (md.incomeTypes) {
-    delete md.incomeTypes[typeId];
-    saveState();
-    renderAll();
-    showUpdatedBadge();
-    toast('🗑️ Tipo de ingreso eliminado');
-  }
+  if(totalVal) totalVal.textContent = fmt(total);
 }
 
 function focusIngresoInput(el) {
