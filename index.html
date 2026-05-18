@@ -1105,18 +1105,21 @@ function renderIngresos(md) {
       <!-- Header: arrow + emoji + name + total | move + delete -->
       <div style="display:flex;align-items:center;gap:6px;margin-bottom:0" onclick="toggleSubIngresos('${ing.id}')" style="cursor:pointer">
         <button id="ing-arrow-${ing.id}" onclick="event.stopPropagation();toggleSubIngresos('${ing.id}')"
-          style="background:none;border:none;color:var(--muted);font-size:0.68rem;cursor:pointer;padding:2px 3px;flex-shrink:0;line-height:1;width:16px;text-align:center">${hasSubs?'▸':'▾'}</button>
+          style="background:rgba(0,0,0,0.06);border:none;color:var(--muted);font-size:0.65rem;cursor:pointer;padding:4px 8px;flex-shrink:0;line-height:1;border-radius:99px;display:flex;align-items:center;gap:3px;font-weight:700;transition:background 0.15s;white-space:nowrap">
+          <svg id="ing-arrow-svg-${ing.id}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:11px;height:11px;transition:transform 0.25s;transform:rotate(${hasSubs?'0deg':'90deg'})"><path d="M9 18l6-6-6-6"/></svg>
+          <span id="ing-arrow-label-${ing.id}">${hasSubs?'Ver':'Ocultar'}</span>
+        </button>
         <span style="font-size:0.92rem;flex-shrink:0">💰</span>
         <input
           style="flex:1;background:none;border:none;outline:none;font-size:0.88rem;font-weight:700;color:var(--text);padding:0;min-width:0"
           value="${ing.name}" placeholder="Concepto"
           onclick="event.stopPropagation()"
           onchange="updateIngreso('${ing.id}','name',this.value)"/>
-        <!-- Total siempre visible -->
-        <span style="font-size:0.88rem;font-weight:800;color:${accent};font-variant-numeric:tabular-nums;flex-shrink:0">${fmt(conceptTotal)}</span>
         <button onclick="event.stopPropagation();moveIngreso('${ing.id}',-1)" style="background:none;border:none;color:var(--muted);font-size:0.85rem;cursor:pointer;padding:2px 3px;flex-shrink:0;opacity:0.6">↑</button>
         <button onclick="event.stopPropagation();moveIngreso('${ing.id}',1)"  style="background:none;border:none;color:var(--muted);font-size:0.85rem;cursor:pointer;padding:2px 3px;flex-shrink:0;opacity:0.6">↓</button>
         <button onclick="event.stopPropagation();removeIngreso('${ing.id}')"  style="background:none;border:none;color:var(--red);font-size:0.85rem;cursor:pointer;padding:2px 3px;flex-shrink:0;opacity:0.55">✕</button>
+        <!-- Total siempre visible -->
+        <span style="font-size:0.88rem;font-weight:800;color:${accent};font-variant-numeric:tabular-nums;flex-shrink:0;min-width:52px;text-align:right">${fmt(conceptTotal)}</span>
       </div>
       <!-- Sub-panel colapsado por defecto -->
       <div id="sub-ing-${ing.id}" style="display:${hasSubs?'none':'block'};padding-left:22px;margin-top:8px">
@@ -1209,8 +1212,12 @@ function addSubIngreso(ingresoId) {
   openPanelsAdd.forEach(id => {
     const panel = document.getElementById('sub-ing-' + id);
     const arrow = document.getElementById('ing-arrow-' + id);
+    const svg = document.getElementById('ing-arrow-svg-' + id);
+    const label = document.getElementById('ing-arrow-label-' + id);
     if (panel) panel.style.display = 'block';
-    if (arrow) arrow.textContent = '▾';
+    if (svg) svg.style.transform = 'rotate(90deg)';
+    if (label) label.textContent = 'Ocultar';
+    if (arrow) { arrow.style.background = 'rgba(0,122,255,0.12)'; arrow.style.color = 'var(--blue)'; }
   });
   showUpdatedBadge();
 }
@@ -1236,8 +1243,12 @@ function updateSubIngreso(ingresoId, subId, field, value) {
   openPanelsUpd.forEach(id => {
     const panel = document.getElementById('sub-ing-' + id);
     const arrow = document.getElementById('ing-arrow-' + id);
+    const svg = document.getElementById('ing-arrow-svg-' + id);
+    const label = document.getElementById('ing-arrow-label-' + id);
     if (panel) panel.style.display = 'block';
-    if (arrow) arrow.textContent = '▾';
+    if (svg) svg.style.transform = 'rotate(90deg)';
+    if (label) label.textContent = 'Ocultar';
+    if (arrow) { arrow.style.background = 'rgba(0,122,255,0.12)'; arrow.style.color = 'var(--blue)'; }
   });
   showUpdatedBadge();
 }
@@ -1262,18 +1273,29 @@ function removeSubIngreso(ingresoId, subId) {
   openPanels.forEach(id => {
     const panel = document.getElementById('sub-ing-' + id);
     const arrow = document.getElementById('ing-arrow-' + id);
+    const svg = document.getElementById('ing-arrow-svg-' + id);
+    const label = document.getElementById('ing-arrow-label-' + id);
     if (panel) panel.style.display = 'block';
-    if (arrow) arrow.textContent = '▾';
+    if (svg) svg.style.transform = 'rotate(90deg)';
+    if (label) label.textContent = 'Ocultar';
+    if (arrow) { arrow.style.background = 'rgba(0,122,255,0.12)'; arrow.style.color = 'var(--blue)'; }
   });
   showUpdatedBadge();
 }
 function toggleSubIngresos(ingresoId) {
   const el = document.getElementById('sub-ing-' + ingresoId);
   const arrow = document.getElementById('ing-arrow-' + ingresoId);
+  const svg = document.getElementById('ing-arrow-svg-' + ingresoId);
+  const label = document.getElementById('ing-arrow-label-' + ingresoId);
   if (!el) return;
   const open = el.style.display !== 'none';
   el.style.display = open ? 'none' : 'block';
-  if (arrow) arrow.textContent = open ? '▸' : '▾';
+  if (svg) svg.style.transform = open ? 'rotate(0deg)' : 'rotate(90deg)';
+  if (label) label.textContent = open ? 'Ver' : 'Ocultar';
+  if (arrow) {
+    arrow.style.background = open ? 'rgba(0,0,0,0.06)' : 'rgba(0,122,255,0.12)';
+    arrow.style.color = open ? 'var(--muted)' : 'var(--blue)';
+  }
 }
 function removeIngreso(id) {
   if (!confirm('¿Eliminar este ingreso?')) return;
@@ -1488,8 +1510,8 @@ function calcAndRender(md, key) {
         html += `<div style="margin-bottom:12px;padding-bottom:4px">
           <div style="display:flex;align-items:center;padding:8px 0 4px;gap:6px">
             <span style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);flex:1">💰 ${ing.name}</span>
-            <span style="font-size:0.75rem;font-weight:700;color:var(--green)">${fmtPos(ing.amount)}</span>
             <button onclick="openDonutModal('${ing.id}')" style="background:none;border:1px solid rgba(0,0,0,0.12);color:var(--muted);border-radius:8px;padding:3px 7px;font-size:0.65rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:3px;flex-shrink:0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11"><path d="M12 3a9 9 0 1 0 9 9h-9z"/><path d="M12 3v9h9"/></svg>Gráfica</button>
+            <span style="font-size:0.75rem;font-weight:700;color:var(--green);flex-shrink:0;min-width:48px;text-align:right">${fmtPos(ing.amount)}</span>
           </div>`;
 
         gastos.forEach(e => { html += mkExpRow(e.icon||'💰', e.name, e.amount, 'var(--red)'); });
@@ -1863,7 +1885,7 @@ function renderGastos(md, key) {
                   <button onclick="deleteExpense('${it.id}','${key}')" style="background:none;border:none;color:var(--red);cursor:pointer;padding:3px;font-size:0.75rem;opacity:0.5;flex-shrink:0;line-height:1">✕</button>
                 ` : ''}
                 ${it.isTarjeta ? `<span style="font-size:0.55rem;background:rgba(0,0,0,0.07);color:var(--muted);padding:2px 6px;border-radius:99px;flex-shrink:0;font-weight:700">tarjeta</span>` : ''}
-                <span style="font-size:0.85rem;font-weight:700;color:var(--red);flex-shrink:0;min-width:52px;text-align:right">${it.isTarjeta?fmtNeg(it.amount):fmtNeg(it.amount)}</span>
+                <span style="font-size:0.85rem;font-weight:700;color:var(--red);flex-shrink:0;min-width:52px;text-align:right">${fmtNeg(it.amount)}</span>
               </div>`).join('')}
           </div>`
         : '';
@@ -1873,7 +1895,11 @@ function renderGastos(md, key) {
           <div onclick="toggleCatBlock('${catId}')" style="display:flex;align-items:center;padding:12px 12px 12px;cursor:pointer;user-select:none;-webkit-user-select:none">
             <div style="width:4px;height:16px;background:${color};border-radius:99px;margin-right:8px;flex-shrink:0"></div>
             <span style="font-size:0.85rem;font-weight:700;color:var(--text);flex:1">${label}</span>
-            <span id="${catId}-arrow" style="font-size:0.65rem;color:var(--muted);transition:transform 0.25s;display:inline-block;transform:rotate(0deg)">▾</span>
+            <span id="${catId}-arrow" style="display:inline-flex;align-items:center;gap:3px;background:rgba(0,0,0,0.06);border-radius:99px;padding:4px 8px;font-size:0.65rem;font-weight:700;color:var(--muted);transition:background 0.2s,color 0.2s;white-space:nowrap;margin-right:8px">
+              <svg id="${catId}-arrow-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:11px;height:11px;transition:transform 0.25s;transform:rotate(0deg)"><path d="M9 18l6-6-6-6"/></svg>
+              <span id="${catId}-arrow-label">Ver</span>
+            </span>
+            <span style="font-size:0.82rem;font-weight:700;color:var(--red);flex-shrink:0">${fmtNeg(amount)}</span>
           </div>
           <div id="${catId}" style="display:none;padding:0 12px 10px">
             ${itemsHtml || '<div style="font-size:0.75rem;color:var(--muted);padding:4px 0 4px 2px;font-style:italic">Sin gastos</div>'}
@@ -2019,10 +2045,17 @@ function renderGastos(md, key) {
 function toggleCatBlock(id) {
   const body = document.getElementById(id);
   const arrow = document.getElementById(id + '-arrow');
+  const svg = document.getElementById(id + '-arrow-svg');
+  const label = document.getElementById(id + '-arrow-label');
   if (!body) return;
   const isOpen = body.style.display !== 'none';
   body.style.display = isOpen ? 'none' : 'block';
-  if (arrow) arrow.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
+  if (svg) svg.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(90deg)';
+  if (label) label.textContent = isOpen ? 'Ver' : 'Ocultar';
+  if (arrow) {
+    arrow.style.background = isOpen ? 'rgba(0,0,0,0.06)' : 'rgba(0,122,255,0.12)';
+    arrow.style.color = isOpen ? 'var(--muted)' : 'var(--blue)';
+  }
 }
 
 function expenseRow(e, key) {
@@ -2195,15 +2228,18 @@ function renderDeuda(md) {
         <!-- Collapsible Header -->
         <div onclick="toggleDeudaCard('${t.id}')" style="display:flex;align-items:center;justify-content:space-between;padding:14px 14px 14px;cursor:pointer;user-select:none;-webkit-user-select:none">
           <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">
-            <span style="font-size:0.65rem;color:var(--muted)" id="deuda-arrow-${t.id}">▸</span>
+            <span id="deuda-arrow-${t.id}" style="display:inline-flex;align-items:center;gap:3px;background:rgba(0,0,0,0.06);border-radius:99px;padding:4px 8px;font-size:0.65rem;font-weight:700;color:var(--muted);transition:background 0.2s,color 0.2s;flex-shrink:0;white-space:nowrap">
+              <svg id="deuda-arrow-svg-${t.id}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:11px;height:11px;transition:transform 0.25s;transform:rotate(0deg)"><path d="M9 18l6-6-6-6"/></svg>
+              <span id="deuda-arrow-label-${t.id}">Ver</span>
+            </span>
             <input class="card-row-name" value="${t.name}" placeholder="Nombre tarjeta"
               onclick="event.stopPropagation()"
               onchange="updateTarjeta('${t.id}','name',this.value)"
               style="font-size:1.05rem;font-weight:800;letter-spacing:-0.01em;flex:1"/>
           </div>
           <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
-            <span style="font-size:0.85rem;font-weight:800;color:var(--red)">${fmtNeg(saldoActual)}</span>
             <button class="del-card-btn" onclick="event.stopPropagation();removeTarjeta('${t.id}')">✕</button>
+            <span style="font-size:0.85rem;font-weight:800;color:var(--red)">${fmtNeg(saldoActual)}</span>
           </div>
         </div>
         <div id="deuda-body-${t.id}" style="display:none;padding:0 14px 14px">
@@ -2307,10 +2343,17 @@ function renderDeuda(md) {
 function toggleDeudaCard(id) {
   const body = document.getElementById('deuda-body-' + id);
   const arrow = document.getElementById('deuda-arrow-' + id);
+  const svg = document.getElementById('deuda-arrow-svg-' + id);
+  const label = document.getElementById('deuda-arrow-label-' + id);
   if (!body) return;
   const isOpen = body.style.display !== 'none';
   body.style.display = isOpen ? 'none' : 'block';
-  if (arrow) arrow.textContent = isOpen ? '▸' : '▾';
+  if (svg) svg.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(90deg)';
+  if (label) label.textContent = isOpen ? 'Ver' : 'Ocultar';
+  if (arrow) {
+    arrow.style.background = isOpen ? 'rgba(0,0,0,0.06)' : 'rgba(0,122,255,0.12)';
+    arrow.style.color = isOpen ? 'var(--muted)' : 'var(--blue)';
+  }
 }
 
 // Live recalc saldo restante while typing (no save)
@@ -2948,26 +2991,26 @@ function renderMovimientosAhorro(key) {
   // Build unified list: deposits first, then salidas, sorted by date if possible
   const depRows = depositos.map((d, i) => `
     <div style="display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid rgba(0,0,0,0.05)">
-      <button onclick="editDeposito(${i},'${key}')" style="background:none;border:none;color:var(--muted);font-size:0.9rem;padding:4px;cursor:pointer;flex-shrink:0">✏️</button>
-      <button onclick="deleteDeposito(${i},'${key}')" style="background:none;border:none;color:var(--red);font-size:0.8rem;padding:4px;cursor:pointer;opacity:0.6;flex-shrink:0">✕</button>
       <span style="font-size:1.1rem;width:24px;text-align:center;flex-shrink:0">🐷</span>
       <div style="flex:1;min-width:0">
         <div style="font-size:0.85rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${d.nota || 'Depósito al ahorro'}</div>
         <div style="font-size:0.62rem;color:var(--muted);margin-top:1px">${[d.fuenteNombre ? '💰 '+d.fuenteNombre : '', d.fecha].filter(Boolean).join(' · ')}</div>
       </div>
-      <span style="font-size:0.92rem;font-weight:800;color:var(--green);flex-shrink:0">+${fmt(d.amount)}</span>
+      <button onclick="editDeposito(${i},'${key}')" style="background:none;border:none;color:var(--muted);font-size:0.9rem;padding:4px;cursor:pointer;flex-shrink:0">✏️</button>
+      <button onclick="deleteDeposito(${i},'${key}')" style="background:none;border:none;color:var(--red);font-size:0.8rem;padding:4px;cursor:pointer;opacity:0.6;flex-shrink:0">✕</button>
+      <span style="font-size:0.92rem;font-weight:800;color:var(--green);flex-shrink:0;min-width:48px;text-align:right">+${fmt(d.amount)}</span>
     </div>`).join('');
 
   const salRows = salidas.map(e => `
     <div style="display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid rgba(0,0,0,0.05)">
-      <button onclick="openAddSalida('${e.id}')" style="background:none;border:none;color:var(--muted);font-size:0.9rem;padding:4px;cursor:pointer;flex-shrink:0">✏️</button>
-      <button onclick="deleteExpense('${e.id}','${key}')" style="background:none;border:none;color:var(--red);font-size:0.8rem;padding:4px;cursor:pointer;opacity:0.6;flex-shrink:0">✕</button>
       <span style="font-size:1.1rem;width:24px;text-align:center;flex-shrink:0">${e.icon || '💸'}</span>
       <div style="flex:1;min-width:0">
         <div style="font-size:0.85rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${e.name}</div>
         <div style="font-size:0.62rem;color:var(--muted);margin-top:1px">Salida del ahorro</div>
       </div>
-      <span style="font-size:0.92rem;font-weight:800;color:var(--red);flex-shrink:0">-${fmt(e.amount)}</span>
+      <button onclick="openAddSalida('${e.id}')" style="background:none;border:none;color:var(--muted);font-size:0.9rem;padding:4px;cursor:pointer;flex-shrink:0">✏️</button>
+      <button onclick="deleteExpense('${e.id}','${key}')" style="background:none;border:none;color:var(--red);font-size:0.8rem;padding:4px;cursor:pointer;opacity:0.6;flex-shrink:0">✕</button>
+      <span style="font-size:0.92rem;font-weight:800;color:var(--red);flex-shrink:0;min-width:48px;text-align:right">-${fmt(e.amount)}</span>
     </div>`).join('');
 
   const netoRow = `
@@ -3152,9 +3195,9 @@ function renderAhorroDesgloseDetail() {
       <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid rgba(0,0,0,0.04)">
         <span style="font-size:0.9rem;width:22px;text-align:center;flex-shrink:0">${e.icon||'💸'}</span>
         <span style="flex:1;font-size:0.82rem;font-weight:500">${e.name}</span>
-        <span style="font-size:0.82rem;font-weight:700;color:var(--red);flex-shrink:0">-${fmt(e.amount)}</span>
         <button onclick="openEditGasto('${e.id}','${key}')" style="background:none;border:none;color:var(--muted);cursor:pointer;padding:2px;font-size:0.85rem;flex-shrink:0">✏️</button>
         <button onclick="deleteExpense('${e.id}','${key}')" style="background:none;border:none;color:var(--red);cursor:pointer;padding:2px;font-size:0.75rem;opacity:0.6;flex-shrink:0">✕</button>
+        <span style="font-size:0.82rem;font-weight:700;color:var(--red);flex-shrink:0;min-width:48px;text-align:right">-${fmt(e.amount)}</span>
       </div>`).join('')
     : `<p class="small-muted" style="text-align:center;padding:8px 0;font-size:0.75rem">Sin salidas del ahorro este mes</p>`;
 
