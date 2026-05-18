@@ -1015,45 +1015,45 @@ function drawDonutForIngreso(md, ingId) {
   const tarjetas = md.tarjetas || [];
   const primerNoVales = ingresos.find(i => !i.name.toLowerCase().includes('vale'));
 
-  let ing, gastos, tarjetasAqui, ahorroMes, titulo, ingresoTotal;
-
-  // Calculate ahorro total
   const depositos = md.depositos || [];
-  ahorroMes = depositos.reduce((s,d)=>s+(d.amount||0),0);
+  const ahorroMes = depositos.reduce((s,d)=>s+(d.amount||0),0);
 
   if (ingId && ingresos.length > 0) {
-    ing = ingresos.find(i => i.id === ingId);
+    const ing = ingresos.find(i => i.id === ingId);
     if (!ing) return;
-    gastos = md.expenses.filter(e => e.fuente === ing.id && e.fuente !== '__AHORRO__');
-    const esPrimero = ing === primerNoVales;
-    tarjetasAqui = esPrimero ? tarjetas.filter(t=>(t.cargo||0)>0) : [];
-    const ahorroDeEste = esPrimero ? ahorroMes : 0;
-    titulo = ing.name;
-    ingresoTotal = ing.amount || 0;
 
-    const categories = [];
-    // Agrupar gastos con el mismo nombre
+    const gastos = md.expenses.filter(e => e.fuente === ing.id && e.fuente !== '__AHORRO__');
+    const esPrimero = ing === primerNoVales;
+    const tarjetasAqui = esPrimero ? tarjetas.filter(t=>(t.cargo||0)>0) : [];
+    const ahorroDeEste = esPrimero ? ahorroMes : 0;
+    const ingresoTotal = ing.amount || 0;
+
+    // Agrupar gastos por nombre (case-insensitive)
     const grouped = {};
+    const categories = [];
     gastos.forEach(e => {
-      if (e.amount > 0) {
-        const key = (e.name || '').trim().toLowerCase();
-        if (grouped[key]) {
-          grouped[key].amount += e.amount;
-        } else {
-          grouped[key] = { label: e.name, amount: e.amount, icon: e.icon || '💰' };
-          categories.push(grouped[key]);
-        }
+      if (e.amount <= 0) return;
+      const key = (e.name || '').trim().toLowerCase();
+      if (grouped[key]) {
+        grouped[key].amount += e.amount;
+      } else {
+        const item = { label: e.name, amount: e.amount, icon: e.icon || '💰' };
+        grouped[key] = item;
+        categories.push(item);
       }
     });
-    tarjetasAqui.forEach(t => { if((t.cargo||0)>0) categories.push({label:t.name, amount:t.cargo, icon:'💳'}); });
-    if (ahorroDeEste > 0) categories.push({label:'Ahorro del mes', amount:ahorroDeEste, icon:'🐷'});
-    const totalGastos = categories.reduce((s,c)=>s+c.amount,0);
-    const libre = Math.max(0, ingresoTotal - totalGastos);
-    if (libre > 0) categories.push({label:'Libre', amount:libre, _libre:true, icon:'✅'});
 
-    drawDonutWithCategories(categories, titulo, totalGastos);
+    tarjetasAqui.forEach(t => {
+      if ((t.cargo||0) > 0) categories.push({ label: t.name, amount: t.cargo, icon: '💳' });
+    });
+    if (ahorroDeEste > 0) categories.push({ label: 'Ahorro del mes', amount: ahorroDeEste, icon: '🐷' });
+
+    const totalGastos = categories.reduce((s,c)=>s+c.amount, 0);
+    const libre = Math.max(0, ingresoTotal - totalGastos);
+    if (libre > 0) categories.push({ label: 'Libre', amount: libre, _libre: true, icon: '✅' });
+
+    drawDonutWithCategories(categories, ing.name, totalGastos);
   } else {
-    // fallback legacy
     const nomina = md.nomina || 0;
     const vales = md.vales || 0;
     drawDonut(md.expenses, nomina, vales, md);
@@ -1671,25 +1671,29 @@ function drawDonutWithCategories(categories, titulo, totalGastos) {
   const labelEl = document.getElementById('donut-center-label');
   const valEl = document.getElementById('donut-center-val');
 
-  // Update modal title
   const h3 = document.querySelector('#modal-donut h3');
   if (h3) h3.textContent = '📊 ' + titulo;
 
-  if (categories.length === 0 || categories.reduce((s,c)=>s+c.amount,0) === 0) {
+  const total = categories.reduce((s,c)=>s+c.amount, 0);
+
+  if (categories.length === 0 || total === 0) {
     legend.innerHTML = '<p style="font-size:0.75rem;color:var(--muted);text-align:center;padding:10px">Sin gastos este mes</p>';
     labelEl.textContent = '';
     valEl.textContent = '';
     return;
   }
 
-  const total = categories.reduce((s,c)=>s+c.amount,0);
+  // Paleta con colores bien diferenciados entre sí
+  const PALETTE = [
+    '#e74c3c','#e67e22','#9b59b6','#3498db','#1abc9c',
+    '#f39c12','#e91e63','#00bcd4','#8bc34a','#ff5722',
+    '#607d8b','#795548','#673ab7','#03a9f4','#cddc39'
+  ];
 
-  // Distinct palette: red/orange/coral/burgundy/pink for expenses, green for libre
-  const PALETTE = ['#ff3b30','#e67e22','#c0392b','#e91e63','#8e44ad','#d35400','#ff6b6b','#922b21','#f39c12'];
-  let ri = 0;
+  let pi = 0;
   categories.forEach(c => {
-    if (c._libre) { c.color = '#1a7a3a'; }
-    else { c.color = PALETTE[ri % PALETTE.length]; ri++; }
+    if (c._libre) c.color = '#1a7a3a';
+    else { c.color = PALETTE[pi % PALETTE.length]; pi++; }
   });
 
   _donutCategories = categories;
@@ -1700,14 +1704,13 @@ function drawDonutWithCategories(categories, titulo, totalGastos) {
   valEl.textContent = fmt(totalGastos);
   valEl.style.color = 'var(--red)';
 
-  const legendTotal = categories.reduce((s,c)=>s+c.amount,0);
-  legend.innerHTML = categories.map((c,i) => {
-    const pct = legendTotal > 0 ? ((c.amount/legendTotal)*100).toFixed(1) : '0.0';
-    return `<div class="legend-item" style="cursor:pointer;border-radius:8px;padding:3px 6px;transition:background 0.15s;display:flex;align-items:center;gap:6px"
+  legend.innerHTML = categories.map((c, i) => {
+    const pct = total > 0 ? ((c.amount / total) * 100).toFixed(1) : '0.0';
+    return `<div class="legend-item" style="cursor:pointer;border-radius:8px;padding:4px 6px;transition:background 0.15s;display:flex;align-items:center;gap:8px"
       onclick="donutLegendClick(${i})" id="legend-item-${i}">
-      <div class="ldot" style="background:${c.color};width:9px;height:9px;border-radius:50%;flex-shrink:0"></div>
-      <span style="font-size:0.78rem;flex:1">${c.icon||''} ${c.label}: <strong>${fmt(c.amount)}</strong></span>
-      <span style="font-size:0.7rem;color:var(--muted);font-weight:600">${pct}%</span>
+      <div style="width:10px;height:10px;border-radius:50%;background:${c.color};flex-shrink:0"></div>
+      <span style="font-size:0.78rem;flex:1;font-weight:600">${c.icon||''} ${c.label}: <strong>${fmt(c.amount)}</strong></span>
+      <span style="font-size:0.7rem;color:var(--muted);font-weight:600;min-width:36px;text-align:right">${pct}%</span>
     </div>`;
   }).join('');
 
