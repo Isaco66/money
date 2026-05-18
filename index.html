@@ -685,6 +685,23 @@ canvas{opacity:0.94;}
   </div>
 </div>
 
+<!-- MODAL: Pagar tarjeta -->
+<div class="modal-overlay" id="modal-pagar-tarjeta">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modal-pagar-tarjeta')">x</button>
+    <h3 id="modal-pago-title">Pagar tarjeta</h3>
+    <div style="margin-bottom:10px">
+      <label class="modal-label">Monto pagado</label>
+      <input class="inp" id="pago-tarjeta-monto" type="number" inputmode="decimal" placeholder="$0"/>
+    </div>
+    <div style="margin-bottom:14px">
+      <label class="modal-label">Descontar de ingreso</label>
+      <select class="inp" id="pago-tarjeta-fuente" style="width:100%"></select>
+    </div>
+    <button class="btn" style="width:100%" onclick="guardarPagoTarjeta()">Guardar pago</button>
+  </div>
+</div>
+
 <!-- Day Picker Bottomsheet -->
 <div class="day-picker-overlay" id="day-picker-overlay" onclick="closeDayPicker(event)">
   <div class="day-picker-sheet">
@@ -704,6 +721,8 @@ const MONTHS_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Ago
 let currentMonth, currentYear;
 let state;
 let _cargoModalTarjetaId = null;
+let _pagoModalTarjetaId = null;
+let _openTarjetaCards = new Set();
 
 function monthKey(y,m) { return `${y}-${String(m+1).padStart(2,'0')}`; }
 function currentKey() { return monthKey(currentYear, currentMonth); }
@@ -731,7 +750,7 @@ function loadState() {
       md.tarjetas = JSON.parse(JSON.stringify(state.deuda.tarjetas));
     }
     md.tarjetas = md.tarjetas.map(t => {
-      const clean = { id: t.id, name: t.name, cargo: t.cargo || 0, cargoItems: t.cargoItems || [], fechaCorte: t.fechaCorte || '' };
+      const clean = { id: t.id, name: t.name, cargo: t.cargo || 0, cargoItems: t.cargoItems || [], fechaCorte: t.fechaCorte || '', fuentePago: t.fuentePago || '' };
       if (t.saldoOverride !== undefined) clean.saldoOverride = t.saldoOverride;
       return clean;
     });
@@ -753,6 +772,7 @@ function saveState() {
         cargo: t.cargo || 0,
         cargoItems: t.cargoItems || [],
         fechaCorte: t.fechaCorte || '',
+        fuentePago: t.fuentePago || '',
         ...(t.saldoOverride !== undefined ? { saldoOverride: t.saldoOverride } : {})
       }));
       if (md._removedTarjetas && md._removedTarjetas.length > 0) {
@@ -890,7 +910,9 @@ function getEffectiveTarjetas(key, depth) {
     const brandNew = stored.filter(t => !prevIds.has(t.id) && !removed.has(t.id)).map(t => {
       const base = t.saldoOverride !== undefined ? t.saldoOverride : (t.saldo || 0);
       const itemsTotal = (t.cargoItems || []).reduce((s, ci) => s + (ci.amount || 0), 0);
-      return { ...t, saldoBase: base, saldo: base + itemsTotal };
+      const cargoThisMonth = t.cargo || 0;
+      const saldoNet = Math.max(0, base + itemsTotal - cargoThisMonth);
+      return { ...t, saldoBase: base, saldo: saldoNet, cargo: cargoThisMonth };
     });
 
     const result = [...carried, ...brandNew];
@@ -913,6 +935,15 @@ function getEffectiveTarjetas(key, depth) {
 
 function defaultExpenses() {
   return [];
+}
+
+function getDefaultPagoFuente(ingresos) {
+  const firstNoVales = (ingresos || []).find(i => !String(i.name || '').toLowerCase().includes('vale'));
+  return firstNoVales ? firstNoVales.id : ((ingresos || [])[0] ? ingresos[0].id : '');
+}
+
+function getTarjetaPagoFuente(t, ingresos) {
+  return t.fuentePago || getDefaultPagoFuente(ingresos);
 }
 
 // ════════════════════════════════════════════
@@ -1490,8 +1521,8 @@ function calcAndRender(md, key) {
       ingresos.forEach(ing => {
         // Excluir gastos del ahorro de esta sección
         const gastos = md.expenses.filter(e => e.fuente === ing.id && e.fuente !== '__AHORRO__');
-        const esTarjetasIng = ing === primerNoVales;
-        const tarjetasAqui = esTarjetasIng ? tarjetas.filter(t=>(t.cargo||0)>0) : [];
+        const esTarjetasIng = ing.id === getDefaultPagoFuente(ingresos);
+        const tarjetasAqui = tarjetas.filter(t => (t.cargo || 0) > 0 && getTarjetaPagoFuente(t, ingresos) === ing.id);
         // El ahorro del mes se resta del primer ingreso no-vales
         const ahorroDeEsteIng = (esTarjetasIng && ahorroMes > 0) ? ahorroMes : 0;
         const totalGastosIng = gastos.reduce((s,e)=>s+(e.amount||0),0)
@@ -1848,9 +1879,11 @@ function renderGastos(md, key) {
       const ROW_COLOR = 'var(--red)';
       ingresos.forEach((ing, i) => {
         const gastos = md.expenses.filter(e => e.fuente === ing.id && e.fuente !== '__AHORRO__');
-        const total = gastos.reduce((s,e)=>s+(e.amount||0),0);
+        const tarjetaItems = tarjetas.filter(t => (t.cargo || 0) > 0 && getTarjetaPagoFuente(t, ingresos) === ing.id)
+          .map(t => ({ name: t.name, amount: t.cargo, icon: '💳', isTarjeta: true }));
+        const total = gastos.reduce((s,e)=>s+(e.amount||0),0) + tarjetaItems.reduce((s,t)=>s+(t.amount||0),0);
         grandTotal += total;
-        rows.push({label:`${ing.name}`, amount:total, color: ROW_COLOR, items:gastos});
+        rows.push({label:`${ing.name}`, amount:total, color: ROW_COLOR, items:gastos, tarjetaItems});
       });
       // Gastos sin fuente asignada (excluir __AHORRO__ y los de ingresos conocidos)
       const sinFuente = md.expenses.filter(e => e.fuente !== '__AHORRO__' && (!e.fuente || !ingresos.find(i=>i.id===e.fuente)));
@@ -1859,9 +1892,7 @@ function renderGastos(md, key) {
         grandTotal += totalSinFuente;
         rows.push({label:'Sin ingreso asignado', amount:totalSinFuente, color:'var(--muted)', items:sinFuente});
       }
-      grandTotal += totalTarjetas;
-      const tarjetaItemsArr = tarjetas.filter(t=>(t.cargo||0)>0).map(t=>({name:t.name,amount:t.cargo,icon:'💳',isTarjeta:true}));
-      if (totalTarjetas > 0) rows.push({label:'💳 Tarjetas', amount:totalTarjetas, color:'var(--red)', items:[], tarjetaItems:tarjetaItemsArr});
+      // Los pagos de tarjeta ya se suman dentro del ingreso elegido.
       // Gastos del ahorro — SIEMPRE AL FINAL, sección propia verde, NO afectan grandTotal
       const gastosAhorro = md.expenses.filter(e => e.fuente === '__AHORRO__');
       const totalAhorro = gastosAhorro.reduce((s,e)=>s+(e.amount||0),0);
@@ -2128,11 +2159,11 @@ function moveExpense(id, dir) {
 // ════════════════════════════════════════════
 function renderDeuda(md) {
   const tarjetas = md.tarjetas || [];
-  // Deuda total = suma de (saldoBase + gastos del mes) de cada tarjeta
+  // Deuda total = restante real despues de pagos.
   const totalDeuda = tarjetas.reduce((s,t)=>{
     const base = t.saldoBase !== undefined ? t.saldoBase : (t.saldo||0);
     const items = (t.cargoItems||[]).reduce((a,ci)=>a+(ci.amount||0),0);
-    return s + base + items;
+    return s + Math.max(0, base + items - (t.cargo || 0));
   },0);
   const totalCargo = tarjetas.reduce((s,t)=>s+(t.cargo||0),0);
 
@@ -2140,14 +2171,6 @@ function renderDeuda(md) {
   document.getElementById('deuda-meses-kpi').textContent = `Abono total este mes: ${fmt(totalCargo)}`;
 
   const tbl = document.getElementById('tarjetas-table');
-
-  // Guardar cuáles están abiertas antes de re-renderizar
-  const openIds = new Set();
-  tbl.querySelectorAll('[id^="deuda-body-"]').forEach(el => {
-    if (el.style.display !== 'none') {
-      openIds.add(el.id.replace('deuda-body-', ''));
-    }
-  });
 
   if (tarjetas.length === 0) {
     tbl.innerHTML = `<p class="small-muted" style="text-align:center;padding:16px">Toca "+ Agregar" para añadir una tarjeta</p>`;
@@ -2166,145 +2189,98 @@ function renderDeuda(md) {
       const saldoRestante = Math.max(0, deudaBruta - abonoMes);
       const hayDeuda = deudaBruta > 0;
       const pagadoCompleto = hayDeuda && saldoRestante === 0;
-      const pctPagado = deudaBruta > 0 ? Math.min(100, (abonoMes / deudaBruta) * 100) : 0;
+      const cardOpen = _openTarjetaCards.has(t.id);
 
       return `
       <div class="card-row" id="card-${t.id}" style="padding:0;overflow:hidden">
-        <!-- Collapsible Header -->
-        <div onclick="toggleDeudaCard('${t.id}')" style="display:flex;align-items:center;justify-content:space-between;padding:14px 14px 14px;cursor:pointer;user-select:none;-webkit-user-select:none">
-          <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">
-            <span id="deuda-arrow-${t.id}" style="display:inline-flex;align-items:center;gap:3px;background:rgba(0,0,0,0.06);border-radius:99px;padding:4px 8px;font-size:0.65rem;font-weight:700;color:var(--muted);transition:background 0.2s,color 0.2s;flex-shrink:0;white-space:nowrap">
-              <svg id="deuda-arrow-svg-${t.id}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:11px;height:11px;transition:transform 0.25s;transform:rotate(0deg)"><path d="M9 18l6-6-6-6"/></svg>
-              <span id="deuda-arrow-label-${t.id}">Ver</span>
-            </span>
-            <input class="card-row-name" value="${t.name}" placeholder="Nombre tarjeta"
-              onclick="event.stopPropagation()"
-              onchange="updateTarjeta('${t.id}','name',this.value)"
-              style="font-size:1.05rem;font-weight:800;letter-spacing:-0.01em;flex:1"/>
-          </div>
-          <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
-            <button class="del-card-btn" onclick="event.stopPropagation();removeTarjeta('${t.id}')">✕</button>
-          </div>
+        <div onclick="toggleTarjetaCard('${t.id}')" style="display:flex;align-items:center;gap:8px;padding:12px 12px;cursor:pointer;user-select:none">
+          <span id="tarjeta-arrow-${t.id}" style="display:inline-flex;align-items:center;gap:3px;background:rgba(37,99,235,0.1);border-radius:9px;padding:4px 8px;font-size:0.65rem;font-weight:800;color:var(--blue);white-space:nowrap;flex-shrink:0">
+            <svg id="tarjeta-arrow-svg-${t.id}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:11px;height:11px;transition:transform 0.2s;transform:${cardOpen?'rotate(90deg)':'rotate(0deg)'}"><path d="M9 18l6-6-6-6"/></svg>
+            <span id="tarjeta-arrow-label-${t.id}">${cardOpen?'Ocultar':'Ver'}</span>
+          </span>
+          <div style="width:4px;height:16px;background:var(--red);border-radius:99px;flex-shrink:0"></div>
+          <input class="card-row-name" value="${t.name}" placeholder="Nombre deuda"
+            onclick="event.stopPropagation()"
+            onchange="updateTarjeta('${t.id}','name',this.value)"
+            style="font-size:0.9rem;font-weight:900;letter-spacing:-0.01em;flex:1;min-width:0;margin:0"/>
+          <span style="font-size:0.86rem;font-weight:900;color:${saldoRestante>0?'var(--red)':'var(--green)'};flex-shrink:0">${fmt(saldoRestante)}</span>
+          <button class="del-card-btn" onclick="event.stopPropagation();removeTarjeta('${t.id}')" style="flex-shrink:0">x</button>
         </div>
-        <div id="deuda-body-${t.id}" style="display:none;padding:0 14px 14px">
 
-        <!-- 4 renglones: Anterior / Gastado / Pagado / Restante -->
-        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">
-
-          <!-- Anterior -->
-          <div style="display:flex;align-items:center;justify-content:space-between;background:var(--red-light);border:1px solid rgba(232,50,42,0.12);border-radius:12px;padding:11px 14px">
-            <div style="font-size:0.62rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:var(--red);opacity:0.8">Anterior</div>
-            <input type="text" inputmode="decimal"
-              style="background:transparent;border:none;outline:none;font-size:1rem;font-weight:900;color:var(--red);width:120px;text-align:right;font-family:inherit;padding:0"
-              value="$${fmtNum(saldoBase)}" placeholder="$0"
-              onfocus="focusTarjetaInput(this)"
-              onblur="blurTarjetaInput(this,'${t.id}','saldo');recalcSaldoRestante('${t.id}')"
-              oninput="autoSizeTarjetaInput(this)"
-              data-raw="${saldoBase}"/>
-          </div>
-
-          <!-- Gastado -->
-          <div style="display:flex;align-items:center;justify-content:space-between;background:var(--s2);border:1px solid var(--border);border-radius:12px;padding:11px 14px">
-            <div style="font-size:0.62rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted)">Gastado</div>
-            <div style="font-size:1rem;font-weight:900;color:${itemsTotal>0?'var(--red)':'var(--muted)'}">
-              ${itemsTotal > 0 ? fmtNeg(itemsTotal) : '—'}
+        <div id="tarjeta-body-${t.id}" style="display:${cardOpen?'block':'none'};padding:0 14px 12px">
+          <div style="border-top:1px solid var(--border);padding-top:6px">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid rgba(0,0,0,0.05)">
+              <span style="font-size:0.78rem;font-weight:800;color:var(--text2)">Lista de gastos</span>
+              <button onclick="openCargoItems('${t.id}')"
+                style="background:var(--s2);border:1px solid var(--border);color:var(--text2);border-radius:8px;padding:4px 8px;font-size:0.66rem;font-weight:900;cursor:pointer;font-family:inherit">
+                + Gasto
+              </button>
+            </div>
+            ${!hasItems ? `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid rgba(0,0,0,0.04)">
+              <span style="font-size:0.76rem;color:var(--muted);font-style:italic">Sin gastos</span>
+              <span style="font-size:0.78rem;font-weight:800;color:var(--muted)">$0</span>
+            </div>` : items.map(ci=>`
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:6px 0 6px 10px;border-bottom:1px solid rgba(0,0,0,0.04)">
+                <span style="font-size:0.76rem;font-weight:650;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:7px">
+                  <span style="width:5px;height:5px;background:var(--red);border-radius:99px;flex-shrink:0;opacity:0.75"></span>${ci.name||'Sin nombre'}
+                </span>
+                <span style="font-size:0.78rem;font-weight:900;color:var(--red);flex-shrink:0">${fmtNeg(ci.amount||0)}</span>
+              </div>`).join('')}
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0 7px;border-bottom:1px solid rgba(0,0,0,0.05)">
+              <span style="font-size:0.78rem;font-weight:800;color:var(--text2)">Total gastado</span>
+              <span style="font-size:0.8rem;font-weight:900;color:${itemsTotal>0?'var(--red)':'var(--muted)'}">${itemsTotal > 0 ? fmtNeg(itemsTotal) : '$0'}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid rgba(0,0,0,0.05)">
+              <span style="font-size:0.78rem;font-weight:800;color:var(--text2)">Saldo anterior</span>
+              <input type="text" inputmode="decimal"
+                style="background:transparent;border:none;outline:none;font-size:0.8rem;font-weight:900;color:var(--red);width:105px;text-align:right;font-family:inherit;padding:0"
+                value="$${fmtNum(saldoBase)}" placeholder="$0"
+                onfocus="focusTarjetaInput(this)"
+                onblur="blurTarjetaInput(this,'${t.id}','saldo');recalcSaldoRestante('${t.id}')"
+                oninput="autoSizeTarjetaInput(this)"
+                data-raw="${saldoBase}"/>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid rgba(0,0,0,0.05)">
+              <span style="font-size:0.78rem;font-weight:800;color:var(--text2)">Saldo nuevo</span>
+              <span style="font-size:0.8rem;font-weight:900;color:${deudaBruta>0?'var(--red)':'var(--muted)'}">${deudaBruta > 0 ? fmt(deudaBruta) : '$0'}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:7px 0;border-bottom:1px solid rgba(0,0,0,0.05)">
+              <div style="display:flex;align-items:center;gap:8px;min-width:0">
+                <span style="font-size:0.78rem;font-weight:800;color:var(--text2)">Pagado</span>
+                <button onclick="openPagarTarjeta('${t.id}')"
+                  style="background:rgba(26,122,58,0.09);border:1px solid rgba(26,122,58,0.18);color:var(--green);border-radius:8px;padding:3px 8px;font-size:0.64rem;font-weight:900;cursor:pointer;font-family:inherit">
+                  Pagar
+                </button>
+              </div>
+              <span style="font-size:0.8rem;font-weight:900;color:${abonoMes>0?'var(--green)':'var(--muted)'};flex-shrink:0;text-align:right;min-width:72px">${abonoMes > 0 ? fmt(abonoMes) : '$0'}</span>
+            </div>
+            <div id="resta-wrap-${t.id}" style="display:flex;justify-content:space-between;align-items:center;padding:8px 0 2px">
+              <span style="font-size:0.8rem;font-weight:900;color:${pagadoCompleto?'var(--green)':'var(--text)'}">Restante</span>
+              <span id="resta-${t.id}" style="font-size:0.86rem;font-weight:900;color:${pagadoCompleto?'var(--green)':saldoRestante>0?'var(--red)':'var(--muted)'}">${!hayDeuda?'$0':fmt(saldoRestante)}</span>
             </div>
           </div>
-
-          <!-- Pagado -->
-          <div style="display:flex;align-items:center;justify-content:space-between;background:var(--green-light);border:1px solid rgba(26,122,58,0.15);border-radius:12px;padding:11px 14px">
-            <div style="font-size:0.62rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:var(--green);opacity:0.85">Pagado</div>
-            <input type="text" inputmode="decimal"
-              style="background:transparent;border:none;outline:none;font-size:1rem;font-weight:900;color:var(--green);width:120px;text-align:right;font-family:inherit;padding:0"
-              value="$${fmtNum(t.cargo)}" placeholder="$0"
-              onfocus="focusTarjetaInput(this)"
-              onblur="blurTarjetaInput(this,'${t.id}','cargo');recalcSaldoRestante('${t.id}')"
-              data-raw="${t.cargo||0}"
-              oninput="liveRecalcSaldoRestante('${t.id}',this.value);autoSizeTarjetaInput(this)"/>
-          </div>
-
-          <!-- Restante -->
-          <div id="resta-wrap-${t.id}" style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border-radius:12px;background:${pagadoCompleto?'var(--green-light)':'var(--red-light)'};border:1.5px solid ${pagadoCompleto?'rgba(26,122,58,0.2)':'rgba(232,50,42,0.18)'}">
-            <span style="font-size:0.62rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:${pagadoCompleto?'var(--green)':'var(--red)'}">
-              ${pagadoCompleto?'✅ Restante':'💳 Restante'}
-            </span>
-            <div id="resta-${t.id}" style="font-size:1rem;font-weight:900;letter-spacing:-0.03em;color:${pagadoCompleto?'var(--green)':saldoRestante>0?'var(--red)':'var(--muted)'}">
-              ${!hayDeuda?'—':fmt(saldoRestante)}
-            </div>
-          </div>
-
         </div>
-
-        <!-- Barra de progreso -->
-        ${hayDeuda ? `
-        <div style="margin-bottom:14px">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
-            <span style="font-size:0.6rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.06em">Avance del pago</span>
-            <span style="font-size:0.65rem;font-weight:900;color:${pctPagado>=100?'var(--green)':'var(--text2)'}">${Math.round(pctPagado)}%</span>
-          </div>
-          <div class="prog-track">
-            <div class="prog-fill" style="width:${pctPagado}%;background:${pctPagado>=100?'var(--green)':'var(--red)'}"></div>
-          </div>
-        </div>` : ''}
-
-        <!-- Botones: Corte + Desglose -->
-        <div style="display:flex;gap:8px;padding-top:10px;border-top:1px solid var(--border)">
-          <button class="corte-day-btn ${t.fechaCorte ? 'set' : ''}" onclick="openDayPicker('${t.id}')"
-            style="flex:1;justify-content:center;font-size:0.8rem;padding:9px 12px">
-            ${t.fechaCorte ? `✂️ Día ${t.fechaCorte}` : '✂️ Corte'}
-          </button>
-          <button onclick="openCargoItems('${t.id}')"
-            style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;background:var(--s2);border:1.5px solid var(--border);color:var(--text2);border-radius:var(--r-sm);padding:9px 12px;font-size:0.8rem;font-weight:800;cursor:pointer;font-family:inherit;transition:background 0.15s">
-            📋 ${hasItems ? `Gastos (${items.length})` : 'Desglose'}
-          </button>
-        </div>
-
-        <!-- Preview gastos si hay -->
-        ${hasItems ? `
-        <div style="margin-top:10px;background:var(--s2);border-radius:12px;overflow:hidden">
-          ${items.map(ci=>`
-            <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 12px;border-bottom:1px solid var(--border)">
-              <span style="font-size:0.8rem;font-weight:600;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:65%">${ci.name||'Sin nombre'}</span>
-              <span style="font-size:0.82rem;font-weight:800;color:var(--red);flex-shrink:0">${fmtNeg(ci.amount||0)}</span>
-            </div>`).join('')}
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 12px;background:var(--red-light)">
-            <span style="font-size:0.62rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:var(--red)">Total gastos</span>
-            <span style="font-size:0.88rem;font-weight:900;color:var(--red)">${fmtNeg(itemsTotal)}</span>
-          </div>
-        </div>` : ''}
-        </div><!-- /deuda-body -->
       </div>`;
     }).join('');
 
-    // Restaurar tarjetas que estaban abiertas
-    openIds.forEach(id => {
-      const body = document.getElementById('deuda-body-' + id);
-      const arrow = document.getElementById('deuda-arrow-' + id);
-      const svg = document.getElementById('deuda-arrow-svg-' + id);
-      const label = document.getElementById('deuda-arrow-label-' + id);
-      if (body) body.style.display = 'block';
-      if (svg) svg.style.transform = 'rotate(90deg)';
-      if (label) label.textContent = 'Ocultar';
-      if (arrow) { arrow.style.background = 'rgba(0,122,255,0.12)'; arrow.style.color = 'var(--blue)'; }
-    });
   }
 
 }
 
-function toggleDeudaCard(id) {
-  const body = document.getElementById('deuda-body-' + id);
-  const arrow = document.getElementById('deuda-arrow-' + id);
-  const svg = document.getElementById('deuda-arrow-svg-' + id);
-  const label = document.getElementById('deuda-arrow-label-' + id);
+function toggleTarjetaCard(id) {
+  const body = document.getElementById('tarjeta-body-' + id);
+  const svg = document.getElementById('tarjeta-arrow-svg-' + id);
+  const label = document.getElementById('tarjeta-arrow-label-' + id);
   if (!body) return;
   const isOpen = body.style.display !== 'none';
+  if (isOpen) {
+    _openTarjetaCards.delete(id);
+  } else {
+    _openTarjetaCards.add(id);
+  }
   body.style.display = isOpen ? 'none' : 'block';
   if (svg) svg.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(90deg)';
   if (label) label.textContent = isOpen ? 'Ver' : 'Ocultar';
-  if (arrow) {
-    arrow.style.background = isOpen ? 'rgba(0,0,0,0.06)' : 'rgba(0,122,255,0.12)';
-    arrow.style.color = isOpen ? 'var(--muted)' : 'var(--blue)';
-  }
 }
 
 // Live recalc saldo restante while typing (no save)
@@ -2320,7 +2296,7 @@ function liveRecalcSaldoRestante(tarjetaId, inputVal) {
   const hayDeuda = deudaBruta > 0;
   const el = document.getElementById('resta-' + tarjetaId);
   if (!el) return;
-  el.textContent = !hayDeuda ? '—' : fmt(resta);
+  el.textContent = !hayDeuda ? '$0' : fmt(resta);
   el.style.color = resta === 0 && hayDeuda ? 'var(--green)' : resta > 0 ? 'var(--red)' : 'var(--muted)';
 }
 
@@ -2338,14 +2314,12 @@ function recalcSaldoRestante(tarjetaId) {
   const pagadoCompleto = hayDeuda && resta === 0;
   const el = document.getElementById('resta-' + tarjetaId);
   if (!el) return;
-  el.textContent = !hayDeuda ? '—' : fmt(resta);
+  el.textContent = !hayDeuda ? '$0' : fmt(resta);
   el.style.color = pagadoCompleto ? 'var(--green)' : resta > 0 ? 'var(--red)' : 'var(--muted)';
   const wrap = document.getElementById('resta-wrap-' + tarjetaId);
   if (wrap) {
-    wrap.style.background = pagadoCompleto ? 'var(--green-light)' : 'var(--red-light)';
-    wrap.style.borderColor = pagadoCompleto ? 'rgba(26,122,58,0.2)' : 'rgba(232,50,42,0.18)';
     wrap.querySelector('span').style.color = pagadoCompleto ? 'var(--green)' : 'var(--red)';
-    wrap.querySelector('span').textContent = pagadoCompleto ? '✅ Restante' : '💳 Restante';
+    wrap.querySelector('span').textContent = 'Restante';
   }
 }
 
@@ -2387,6 +2361,25 @@ function getRawStoredTarjeta(key, id) {
   return (state.months[key].tarjetas || []).find(t => t.id === id) || null;
 }
 
+function ensureRawStoredTarjeta(key, id) {
+  getMonthData(key);
+  if (!state.months[key].tarjetas) state.months[key].tarjetas = [];
+  let raw = getRawStoredTarjeta(key, id);
+  if (raw) return raw;
+  const view = getMonthData(key).tarjetas.find(t => t.id === id);
+  if (!view) return null;
+  raw = {
+    id: view.id,
+    name: view.name,
+    cargo: view.cargo || 0,
+    cargoItems: view.cargoItems || [],
+    fechaCorte: view.fechaCorte || '',
+    fuentePago: view.fuentePago || ''
+  };
+  state.months[key].tarjetas.push(raw);
+  return raw;
+}
+
 function openCargoItems(tarjetaId) {
   _cargoModalTarjetaId = tarjetaId;
   const key = currentKey();
@@ -2398,9 +2391,43 @@ function openCargoItems(tarjetaId) {
   const base = tView.saldoBase !== undefined ? tView.saldoBase : (tView.saldo || 0);
   document.getElementById('modal-saldo-base-val').textContent = fmt(base);
   // Use raw stored record for the editable cargoItems list
-  const tRaw = getRawStoredTarjeta(key, tarjetaId);
+  const tRaw = ensureRawStoredTarjeta(key, tarjetaId);
   renderCargoItemsList(tRaw ? (tRaw.cargoItems || []) : []);
   document.getElementById('modal-cargo-items').classList.add('show');
+}
+
+function openPagarTarjeta(tarjetaId) {
+  _pagoModalTarjetaId = tarjetaId;
+  const key = currentKey();
+  const md = getMonthData(key);
+  const tView = md.tarjetas.find(x => x.id === tarjetaId);
+  if (!tView) return;
+  const tRaw = ensureRawStoredTarjeta(key, tarjetaId);
+  const ingresos = md.ingresos || [];
+  document.getElementById('modal-pago-title').textContent = `Pagar ${tView.name}`;
+  document.getElementById('pago-tarjeta-monto').value = tRaw && tRaw.cargo ? tRaw.cargo : '';
+  const sel = document.getElementById('pago-tarjeta-fuente');
+  sel.innerHTML = ingresos.length
+    ? ingresos.map(i => `<option value="${i.id}">${i.name} - ${fmt(i.amount || 0)}</option>`).join('')
+    : `<option value="">Sin ingresos</option>`;
+  sel.value = (tRaw && tRaw.fuentePago) || getDefaultPagoFuente(ingresos);
+  document.getElementById('modal-pagar-tarjeta').classList.add('show');
+}
+
+function guardarPagoTarjeta() {
+  const key = currentKey();
+  const tRaw = ensureRawStoredTarjeta(key, _pagoModalTarjetaId);
+  if (!tRaw) return;
+  const monto = parseFloat(document.getElementById('pago-tarjeta-monto').value) || 0;
+  const fuente = document.getElementById('pago-tarjeta-fuente').value || '';
+  tRaw.cargo = Math.max(0, monto);
+  tRaw.fuentePago = fuente;
+  delete tRaw.saldo;
+  delete tRaw.saldoBase;
+  saveState();
+  closeModal('modal-pagar-tarjeta');
+  renderAll();
+  showUpdatedBadge();
 }
 
 function renderCargoItemsList(items) {
@@ -2521,8 +2548,7 @@ function updateTarjeta(id, field, value) {
   const key = currentKey();
   // Write directly to the raw stored tarjetas, never to the computed view from getMonthData
   if (!state.months[key]) return;
-  const stored = state.months[key].tarjetas || [];
-  const t = stored.find(x => x.id === id);
+  const t = ensureRawStoredTarjeta(key, id);
   if (!t) return;
   t[field] = value;
   saveState();
@@ -2533,7 +2559,7 @@ function addTarjeta() {
   // Ensure month exists
   getMonthData(key);
   if (!state.months[key].tarjetas) state.months[key].tarjetas = [];
-  state.months[key].tarjetas.push({ id: uid(), name: 'Nueva tarjeta', saldoOverride: 0, cargo: 0, fechaCorte: '', cargoItems: [] });
+  state.months[key].tarjetas.push({ id: uid(), name: 'Nueva tarjeta', saldoOverride: 0, cargo: 0, fechaCorte: '', fuentePago: '', cargoItems: [] });
   saveState();
   renderAll();
 }
@@ -2546,6 +2572,7 @@ function removeTarjeta(id) {
   if (!md._removedTarjetas) md._removedTarjetas = [];
   if (!md._removedTarjetas.includes(id)) md._removedTarjetas.push(id);
   md.tarjetas = (md.tarjetas || []).filter(t => t.id !== id);
+  _openTarjetaCards.delete(id);
   saveState();
   renderAll();
 }
@@ -2808,6 +2835,15 @@ function getTotalAhorradoMes(key) {
   return md.ahorroReal || 0;
 }
 
+function getNetoAhorroMes(key) {
+  const md = state.months[key];
+  if (!md) return 0;
+  const gastado = (md.expenses || [])
+    .filter(e => e.fuente === '__AHORRO__')
+    .reduce((s, e) => s + (e.amount || 0), 0);
+  return getTotalAhorradoMes(key) - gastado;
+}
+
 function calcSaldoAhorro(upToKey) {
   // upToKey: solo contar meses <= upToKey (inclusive). Si no se pasa, usa el mes actual.
   const limit = upToKey || currentKey();
@@ -2839,8 +2875,8 @@ function renderAhorro() {
   const prevM = currentMonth === 0 ? 11 : currentMonth - 1;
   const prevY = currentMonth === 0 ? currentYear - 1 : currentYear;
   const prevKey = monthKey(prevY, prevM);
-  const curAhorro = getTotalAhorradoMes(nowKey);
-  const prevAhorro = getTotalAhorradoMes(prevKey);
+  const curAhorro = getNetoAhorroMes(nowKey);
+  const prevAhorro = getNetoAhorroMes(prevKey);
 
   document.getElementById('ahorro-kpi-prev').textContent = prevAhorro > 0 ? fmt(prevAhorro) : '—';
   document.getElementById('ahorro-kpi-prev-label').textContent = `${MONTHS_ES[prevM]} ${prevY}`;
@@ -3367,12 +3403,27 @@ function checkArrastreLibre() {
   const ingresos = md.ingresos || [];
   const depositos = md.depositos || [];
   const ahorroMes = depositos.reduce((s, d) => s + (d.amount || 0), 0);
-  return ingresos.some((ing, idx) => {
+  const hayLibre = ingresos.some((ing, idx) => {
     const gastos = (md.expenses || []).filter(e => e.fuente === ing.id && e.fuente !== '__AHORRO__');
     const gastado = gastos.reduce((s, e) => s + (e.amount || 0), 0);
+    const pagoTarjetas = (md.tarjetas || [])
+      .filter(t => (t.cargo || 0) > 0 && getTarjetaPagoFuente(t, ingresos) === ing.id)
+      .reduce((s, t) => s + (t.cargo || 0), 0);
     const ahorroDe = idx === 0 ? ahorroMes : 0;
-    return (ing.amount || 0) - gastado - ahorroDe > 0.01;
+    return (ing.amount || 0) - gastado - pagoTarjetas - ahorroDe > 0.01;
   });
+  return hayLibre || getDeudasPendientesArrastre(key).length > 0;
+}
+
+function getDeudasPendientesArrastre(key) {
+  const tarjetas = getMonthData(key).tarjetas || [];
+  return tarjetas.map(t => {
+    const saldoBase = t.saldoBase !== undefined ? t.saldoBase : (t.saldo || 0);
+    const itemsTotal = (t.cargoItems || []).reduce((s, ci) => s + (ci.amount || 0), 0);
+    const pagado = t.cargo || 0;
+    const pendiente = Math.max(0, saldoBase + itemsTotal - pagado);
+    return { ...t, saldoBase, itemsTotal, pagado, pendiente };
+  }).filter(t => t.pendiente > 0.01);
 }
 
 function openArrastreModal(targetNormM, targetY) {
@@ -3391,19 +3442,26 @@ function openArrastreModal(targetNormM, targetY) {
 
   let html = '';
   let totalArrastre = 0;
+  let hasLibreArrastre = false;
   const depositos = md.depositos || [];
   const ahorroMes = depositos.reduce((s, d) => s + (d.amount || 0), 0);
+  const deudasPendientes = getDeudasPendientesArrastre(key);
+  const totalDeudaPendiente = deudasPendientes.reduce((s, t) => s + t.pendiente, 0);
 
   ingresos.forEach(ing => {
     const conceptTotal = ing.amount || 0;
     const gastos = (md.expenses || []).filter(e => e.fuente === ing.id && e.fuente !== '__AHORRO__');
     const gastado = gastos.reduce((s, e) => s + (e.amount || 0), 0);
+    const pagoTarjetas = (md.tarjetas || [])
+      .filter(t => (t.cargo || 0) > 0 && getTarjetaPagoFuente(t, ingresos) === ing.id)
+      .reduce((s, t) => s + (t.cargo || 0), 0);
     // Ahorro from this ingreso
     const esPrimero = ingresos.indexOf(ing) === 0;
     const ahorroDe = esPrimero ? ahorroMes : 0;
-    const libre = conceptTotal - gastado - ahorroDe;
+    const libre = conceptTotal - gastado - pagoTarjetas - ahorroDe;
 
     if (libre > 0.01) {
+      hasLibreArrastre = true;
       totalArrastre += libre;
       html += `
         <div style="background:rgba(26,122,58,0.05);border:1px solid rgba(26,122,58,0.15);border-radius:12px;padding:12px 14px;margin-bottom:10px">
@@ -3414,6 +3472,7 @@ function openArrastreModal(targetNormM, targetY) {
           <div style="font-size:0.68rem;color:var(--muted);display:flex;flex-direction:column;gap:3px">
             <div style="display:flex;justify-content:space-between"><span>Ingreso</span><span>${fmt(conceptTotal)}</span></div>
             <div style="display:flex;justify-content:space-between"><span>Gastos</span><span>-${fmt(gastado)}</span></div>
+            ${pagoTarjetas > 0 ? `<div style="display:flex;justify-content:space-between"><span>Pago tarjetas</span><span>-${fmt(pagoTarjetas)}</span></div>` : ''}
             ${ahorroDe > 0 ? `<div style="display:flex;justify-content:space-between"><span>Ahorro</span><span>-${fmt(ahorroDe)}</span></div>` : ''}
             <div style="display:flex;justify-content:space-between;font-weight:700;color:var(--green);border-top:1px solid rgba(26,122,58,0.15);padding-top:3px;margin-top:2px">
               <span>Libre → sub-ingreso en ${MONTHS_ES[nm - 1]}</span><span>${fmtPos(libre)}</span>
@@ -3423,9 +3482,34 @@ function openArrastreModal(targetNormM, targetY) {
     }
   });
 
+  if (deudasPendientes.length > 0) {
+    html += `
+      <div style="background:rgba(220,38,38,0.05);border:1px solid rgba(220,38,38,0.16);border-radius:12px;padding:12px 14px;margin-bottom:10px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:10px">
+          <span style="font-size:0.85rem;font-weight:800">💳 Deuda pendiente</span>
+          <span style="font-size:0.88rem;font-weight:900;color:var(--red)">${fmt(totalDeudaPendiente)}</span>
+        </div>
+        <div style="font-size:0.68rem;color:var(--muted);display:flex;flex-direction:column;gap:5px">
+          ${deudasPendientes.map(t => `
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+              <span style="font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.name || 'Deuda'}</span>
+              <span style="font-weight:900;color:var(--red);flex-shrink:0">${fmt(t.pendiente)}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding-bottom:4px;border-bottom:1px solid rgba(220,38,38,0.1)">
+              <span>Se arrastra a ${MONTHS_ES[nm - 1]}</span>
+              <span>${t.pagado > 0 ? `pagaste ${fmt(t.pagado)}` : 'sin pago este mes'}</span>
+            </div>
+          `).join('')}
+          <div style="display:flex;justify-content:space-between;font-weight:800;color:var(--red);padding-top:3px">
+            <span>Total deuda que pasa</span><span>${fmt(totalDeudaPendiente)}</span>
+          </div>
+        </div>
+      </div>`;
+  }
+
   if (!html) {
     html = `<p style="text-align:center;color:var(--muted);font-size:0.82rem;padding:16px 0">No hay libre para arrastrar este mes.</p>`;
-  } else {
+  } else if (hasLibreArrastre) {
     html += `
       <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:rgba(26,122,58,0.1);border-radius:12px;margin-top:4px">
         <span style="font-size:0.82rem;font-weight:700">Total a arrastrar</span>
@@ -3450,17 +3534,51 @@ function confirmarArrastre() {
   getMonthData(nextKey);
   const nextMd = state.months[nextKey];
   if (!nextMd.ingresos) nextMd.ingresos = [];
+  if (!nextMd.tarjetas) nextMd.tarjetas = [];
 
   const [ny, nm] = nextKey.split('-').map(Number);
   const mesNombre = MONTHS_ES[nm - 1] + ' ' + ny;
+  const deudasPendientes = getDeudasPendientesArrastre(key);
+
+  deudasPendientes.forEach(t => {
+    if (nextMd._removedTarjetas) {
+      nextMd._removedTarjetas = nextMd._removedTarjetas.filter(id => id !== t.id);
+    }
+
+    let nextTarjeta = nextMd.tarjetas.find(nt => nt.id === t.id);
+    if (!nextTarjeta) {
+      nextTarjeta = {
+        id: t.id,
+        name: t.name || 'Deuda',
+        saldoOverride: 0,
+        cargo: 0,
+        fechaCorte: t.fechaCorte || '',
+        fuentePago: t.fuentePago || '',
+        cargoItems: []
+      };
+      nextMd.tarjetas.push(nextTarjeta);
+    }
+
+    nextTarjeta.name = t.name || nextTarjeta.name || 'Deuda';
+    nextTarjeta.saldoOverride = Math.round(t.pendiente * 100) / 100;
+    nextTarjeta.cargo = 0;
+    nextTarjeta.cargoItems = [];
+    nextTarjeta.fechaCorte = t.fechaCorte || nextTarjeta.fechaCorte || '';
+    nextTarjeta.fuentePago = t.fuentePago || nextTarjeta.fuentePago || '';
+    delete nextTarjeta.saldo;
+    delete nextTarjeta.saldoBase;
+  });
 
   ingresos.forEach((ing, idx) => {
     const conceptTotal = ing.amount || 0;
     const gastos = (md.expenses || []).filter(e => e.fuente === ing.id && e.fuente !== '__AHORRO__');
     const gastado = gastos.reduce((s, e) => s + (e.amount || 0), 0);
+    const pagoTarjetas = (md.tarjetas || [])
+      .filter(t => (t.cargo || 0) > 0 && getTarjetaPagoFuente(t, ingresos) === ing.id)
+      .reduce((s, t) => s + (t.cargo || 0), 0);
     const esPrimero = idx === 0;
     const ahorroDe = esPrimero ? ahorroMes : 0;
-    const libre = conceptTotal - gastado - ahorroDe;
+    const libre = conceptTotal - gastado - pagoTarjetas - ahorroDe;
     if (libre < 0.01) return;
 
     // Find matching ingreso in next month or create it
@@ -3498,7 +3616,7 @@ function confirmarArrastre() {
   showUpdatedBadge();
 
   // Show confirmation toast
-  showToast('✅ Libre arrastrado a ' + mesNombre);
+  showToast('✅ Arrastrado a ' + mesNombre);
 }
 
 function cancelarArrastre() {
