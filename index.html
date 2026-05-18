@@ -1917,7 +1917,7 @@ function renderGastos(md, key) {
               </div>`).join('')}
           </div>`
         : '';
-      const catId = 'cat-' + label.replace(/[^a-z0-9]/gi,'') + '-' + Math.random().toString(36).slice(2,6);
+      const catId = 'cat-' + label.replace(/[^a-z0-9]/gi,'').toLowerCase();
       return `
         <div style="margin-bottom:10px;background:rgba(0,0,0,0.03);border:1px solid rgba(0,0,0,0.07);border-radius:14px;overflow:hidden">
           <div onclick="toggleCatBlock('${catId}')" style="display:flex;align-items:center;padding:12px 12px 12px;cursor:pointer;user-select:none;-webkit-user-select:none">
@@ -1965,7 +1965,27 @@ function renderGastos(md, key) {
           <span style="font-size:0.95rem;font-weight:800;color:var(--red);font-variant-numeric:tabular-nums">${fmtNeg(grandTotal)}</span>
         </div>`;
 
+    // Guardar qué categorías están abiertas antes de re-renderizar
+    const openCats = new Set();
+    resumenEl.querySelectorAll('[id^="cat-"]').forEach(el => {
+      if (!el.id.endsWith('-arrow') && !el.id.endsWith('-arrow-svg') && !el.id.endsWith('-arrow-label')) {
+        if (el.style.display !== 'none') openCats.add(el.id);
+      }
+    });
+
     resumenEl.innerHTML = visibleRows.map(r => mkBar(r, grandTotal)).join('') + catSummaryHtml;
+
+    // Restaurar categorías que estaban abiertas
+    openCats.forEach(id => {
+      const body = document.getElementById(id);
+      const arrow = document.getElementById(id + '-arrow');
+      const svg = document.getElementById(id + '-arrow-svg');
+      const label = document.getElementById(id + '-arrow-label');
+      if (body) body.style.display = 'block';
+      if (svg) svg.style.transform = 'rotate(90deg)';
+      if (label) label.textContent = 'Ocultar';
+      if (arrow) { arrow.style.background = 'rgba(0,122,255,0.12)'; arrow.style.color = 'var(--blue)'; }
+    });
   }
 
   // ── Listas dinámicas por ingreso ── (hidden: redundant with category summary)
