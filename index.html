@@ -2208,31 +2208,38 @@ function renderDeuda(md) {
         </div>
         <div id="deuda-body-${t.id}" style="display:none;padding:0 14px 14px">
 
-        <!-- Tres chips de estado -->
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px">
-          <!-- Saldo total -->
-          <div style="background:rgba(255,59,48,0.06);border:1px solid rgba(255,59,48,0.12);border-radius:14px;padding:10px 8px;text-align:center">
-            <div style="font-size:0.52rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--red);margin-bottom:5px">Saldo</div>
-            <div style="display:flex;align-items:baseline;justify-content:center;gap:1px">
-              <span style="font-size:0.72rem;font-weight:700;color:var(--red)">$</span>
+        <!-- Filas de datos limpias -->
+        <div style="margin-bottom:14px;border:1px solid rgba(0,0,0,0.07);border-radius:16px;overflow:hidden">
+
+          <!-- Fila Saldo -->
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 14px;border-bottom:1px solid rgba(0,0,0,0.06)">
+            <div style="display:flex;align-items:center;gap:8px">
+              <div style="width:8px;height:8px;border-radius:50%;background:var(--red);flex-shrink:0"></div>
+              <span style="font-size:0.8rem;font-weight:600;color:var(--muted)">Saldo total</span>
+              ${itemsTotal > 0 ? `<span style="font-size:0.6rem;color:var(--muted);background:rgba(0,0,0,0.05);padding:1px 6px;border-radius:99px">${fmt(t.saldoBase||0)}+cargos</span>` : ''}
+            </div>
+            <div style="display:flex;align-items:baseline;gap:2px">
+              <span style="font-size:0.75rem;font-weight:700;color:var(--red)">$</span>
               <input type="text" inputmode="decimal"
-                style="background:transparent;border:none;outline:none;font-size:1rem;font-weight:800;color:var(--red);text-align:center;width:100%;min-width:0"
+                style="background:transparent;border:none;outline:none;font-size:1.05rem;font-weight:800;color:var(--red);text-align:right;width:90px;min-width:0"
                 value="${fmtNum(t.saldo)}" placeholder="0"
                 onfocus="focusTarjetaInput(this)"
                 onblur="blurTarjetaInput(this,'${t.id}','saldo');recalcSaldoRestante('${t.id}')"
                 oninput="autoSizeTarjetaInput(this)"
                 data-raw="${t.saldoBase||t.saldo||0}"/>
             </div>
-            ${itemsTotal > 0 ? `<div style="font-size:0.5rem;color:var(--muted);margin-top:2px">${fmt(t.saldoBase||0)}+cargos</div>` : ''}
           </div>
 
-          <!-- Pago del mes -->
-          <div style="background:rgba(26,122,58,0.06);border:1px solid rgba(26,122,58,0.15);border-radius:14px;padding:10px 8px;text-align:center">
-            <div style="font-size:0.52rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--green);margin-bottom:5px">Pagué</div>
-            <div style="display:flex;align-items:baseline;justify-content:center;gap:1px">
-              <span style="font-size:0.72rem;font-weight:700;color:var(--green)">$</span>
+          <!-- Fila Pagué -->
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 14px;border-bottom:1px solid rgba(0,0,0,0.06)">
+            <div style="display:flex;align-items:center;gap:8px">
+              <div style="width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0"></div>
+              <span style="font-size:0.8rem;font-weight:600;color:var(--muted)">Pagué este mes</span>
+            </div>
+            <div style="display:flex;align-items:baseline;gap:2px">
+              <span style="font-size:0.75rem;font-weight:700;color:var(--green)">$</span>
               <input type="text" inputmode="decimal"
-                style="background:transparent;border:none;outline:none;font-size:1rem;font-weight:800;color:var(--green);text-align:center;width:100%;min-width:0"
+                style="background:transparent;border:none;outline:none;font-size:1.05rem;font-weight:800;color:var(--green);text-align:right;width:90px;min-width:0"
                 value="${fmtNum(t.cargo)}" placeholder="0"
                 onfocus="focusTarjetaInput(this)"
                 onblur="blurTarjetaInput(this,'${t.id}','cargo');recalcSaldoRestante('${t.id}')"
@@ -2241,22 +2248,25 @@ function renderDeuda(md) {
             </div>
           </div>
 
-          <!-- Saldo restante (auto-calc) -->
-          <div style="background:${saldoRestante===0&&saldoActual>0?'rgba(26,122,58,0.08)':saldoRestante>0?'rgba(255,159,10,0.06)':'rgba(0,0,0,0.04)'};border:1px solid ${saldoRestante===0&&saldoActual>0?'rgba(26,122,58,0.18)':saldoRestante>0?'rgba(255,159,10,0.18)':'rgba(0,0,0,0.06)'};border-radius:14px;padding:10px 8px;text-align:center">
-            <div style="font-size:0.52rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:${saldoRestante===0&&saldoActual>0?'var(--green)':'var(--red)'};margin-bottom:5px">Resta</div>
-            <div id="resta-${t.id}" style="font-size:1rem;font-weight:800;color:${saldoRestante===0&&saldoActual>0?'var(--green)':saldoRestante>0?'var(--red)':'var(--muted)'}">${saldoActual===0?'—':fmt(saldoRestante)}</div>
+          <!-- Fila Resta -->
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 14px;background:${saldoRestante===0&&saldoActual>0?'rgba(26,122,58,0.05)':'rgba(255,59,48,0.03)'}">
+            <div style="display:flex;align-items:center;gap:8px">
+              <div style="width:8px;height:8px;border-radius:50%;background:${saldoRestante===0&&saldoActual>0?'var(--green)':'var(--red)'};flex-shrink:0"></div>
+              <span style="font-size:0.8rem;font-weight:700;color:var(--text)">Por pagar</span>
+            </div>
+            <div id="resta-${t.id}" style="font-size:1.05rem;font-weight:800;color:${saldoRestante===0&&saldoActual>0?'var(--green)':saldoRestante>0?'var(--red)':'var(--muted)'}">${saldoActual===0?'—':fmt(saldoRestante)}</div>
           </div>
         </div>
 
         <!-- Barra de progreso de pago -->
         ${saldoActual > 0 ? `
         <div style="margin-bottom:12px">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-            <span style="font-size:0.6rem;color:var(--muted);font-weight:600">Avance del pago</span>
-            <span style="font-size:0.6rem;font-weight:700;color:${pctPagado>=100?'var(--green)':'var(--muted)'}">${Math.round(pctPagado)}%</span>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <span style="font-size:0.62rem;color:var(--muted);font-weight:600">Avance del pago</span>
+            <span style="font-size:0.62rem;font-weight:800;color:${pctPagado>=100?'var(--green)':'var(--muted)'}">${Math.round(pctPagado)}%</span>
           </div>
-          <div class="prog-track" style="height:5px">
-            <div class="prog-fill" style="width:${pctPagado}%;background:${pctPagado>=100?'var(--green)':pctPagado>=50?'var(--green)':'var(--red)'}"></div>
+          <div class="prog-track" style="height:6px;border-radius:99px">
+            <div class="prog-fill" style="width:${pctPagado}%;background:${pctPagado>=100?'var(--green)':'var(--red)'};border-radius:99px"></div>
           </div>
         </div>` : ''}
 
