@@ -1032,7 +1032,19 @@ function drawDonutForIngreso(md, ingId) {
     ingresoTotal = ing.amount || 0;
 
     const categories = [];
-    gastos.forEach(e => { if(e.amount>0) categories.push({label:e.name, amount:e.amount, icon:e.icon||'💰'}); });
+    // Agrupar gastos con el mismo nombre
+    const grouped = {};
+    gastos.forEach(e => {
+      if (e.amount > 0) {
+        const key = (e.name || '').trim().toLowerCase();
+        if (grouped[key]) {
+          grouped[key].amount += e.amount;
+        } else {
+          grouped[key] = { label: e.name, amount: e.amount, icon: e.icon || '💰' };
+          categories.push(grouped[key]);
+        }
+      }
+    });
     tarjetasAqui.forEach(t => { if((t.cargo||0)>0) categories.push({label:t.name, amount:t.cargo, icon:'💳'}); });
     if (ahorroDeEste > 0) categories.push({label:'Ahorro del mes', amount:ahorroDeEste, icon:'🐷'});
     const totalGastos = categories.reduce((s,c)=>s+c.amount,0);
