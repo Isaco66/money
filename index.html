@@ -1906,12 +1906,12 @@ function renderGastos(md, key) {
       return `
         <div style="margin-bottom:10px;background:rgba(0,0,0,0.03);border:1px solid rgba(0,0,0,0.07);border-radius:14px;overflow:hidden">
           <div onclick="toggleCatBlock('${catId}')" style="display:flex;align-items:center;padding:12px 12px 12px;cursor:pointer;user-select:none;-webkit-user-select:none">
-            <div style="width:4px;height:16px;background:${color};border-radius:99px;margin-right:8px;flex-shrink:0"></div>
-            <span style="font-size:0.85rem;font-weight:700;color:var(--text);flex:1">${label}</span>
-            <span id="${catId}-arrow" style="display:inline-flex;align-items:center;gap:3px;background:rgba(0,0,0,0.06);border-radius:99px;padding:4px 8px;font-size:0.65rem;font-weight:700;color:var(--muted);transition:background 0.2s,color 0.2s;white-space:nowrap;margin-right:8px">
+            <span id="${catId}-arrow" style="display:inline-flex;align-items:center;gap:3px;background:rgba(0,0,0,0.06);border-radius:99px;padding:4px 8px;font-size:0.65rem;font-weight:700;color:var(--muted);transition:background 0.2s,color 0.2s;white-space:nowrap;margin-right:8px;flex-shrink:0">
               <svg id="${catId}-arrow-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:11px;height:11px;transition:transform 0.25s;transform:rotate(0deg)"><path d="M9 18l6-6-6-6"/></svg>
               <span id="${catId}-arrow-label">Ver</span>
             </span>
+            <div style="width:4px;height:16px;background:${color};border-radius:99px;margin-right:8px;flex-shrink:0"></div>
+            <span style="font-size:0.85rem;font-weight:700;color:var(--text);flex:1">${label}</span>
             <span style="font-size:0.82rem;font-weight:700;color:var(--red);flex-shrink:0">${fmtNeg(amount)}</span>
           </div>
           <div id="${catId}" style="display:none;padding:0 12px 10px">
