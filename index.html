@@ -1133,8 +1133,8 @@ function renderIngresos(md) {
       <div style="display:flex;align-items:center;gap:6px;margin-bottom:0" onclick="toggleSubIngresos('${ing.id}')" style="cursor:pointer">
         <button id="ing-arrow-${ing.id}" onclick="event.stopPropagation();toggleSubIngresos('${ing.id}')"
           style="background:rgba(0,0,0,0.06);border:none;color:var(--muted);font-size:0.65rem;cursor:pointer;padding:4px 8px;flex-shrink:0;line-height:1;border-radius:99px;display:flex;align-items:center;gap:3px;font-weight:700;transition:background 0.15s;white-space:nowrap">
-          <svg id="ing-arrow-svg-${ing.id}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:11px;height:11px;transition:transform 0.25s;transform:rotate(${hasSubs?'0deg':'90deg'})"><path d="M9 18l6-6-6-6"/></svg>
-          <span id="ing-arrow-label-${ing.id}">${hasSubs?'Ver':'Ocultar'}</span>
+          <svg id="ing-arrow-svg-${ing.id}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:11px;height:11px;transition:transform 0.25s;transform:rotate(${hasSubs?'90deg':'0deg'})"><path d="M9 18l6-6-6-6"/></svg>
+          <span id="ing-arrow-label-${ing.id}">${hasSubs?'Ocultar':'Ver'}</span>
         </button>
         <span style="font-size:0.92rem;flex-shrink:0">💰</span>
         <input
